@@ -159,6 +159,11 @@ python scripts/rce.py http://localhost:8080 "curl http://10.244.1.19"
 
 ```
 
+```sh
+kubectl run curl-test --rm -it --image=alpine/curl -- -fsSL http://10.244.1.19
+kubectl run curl-test --rm -it --image=alpine/curl -- sh
+```
+
 ---
 
 ## Attack Chain Summary
