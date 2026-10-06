@@ -1,0 +1,33 @@
+# rbac: sa - leftover
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: leftover
+  namespace: insecure
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: leftover
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+# Cluster-wide binding: backend SA can read secrets in every namespace, incl. db.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: leftover
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backend
+subjects:
+  - kind: ServiceAccount
+    name: leftover
+    namespace: insecure

