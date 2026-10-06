@@ -16,7 +16,7 @@ spec:
       labels:
         app: react2shell-insecure
     spec:
-      serviceAccountName: react2shell
+      serviceAccountName: react2shell-insecure
       containers:
         - name: react2shell-insecure
           image: docker.io/simonangelfong/react2shell:insecure

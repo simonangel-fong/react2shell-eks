@@ -80,8 +80,8 @@ GitOps via Argo CD, app-of-apps.
 ```txt
 argocd/
   root-app.yaml                    # app-of-apps root (apply by hand)
-  apps/react2shell.yaml            # child Application
-  manifests/react2shell/           # the vulnerable app (ns, deployment, service)
+  apps/insecure.yaml               # child Application
+  inseure/                         # the vulnerable app (sa, deployment, service, secret)
 ```
 
 ```sh

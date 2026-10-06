@@ -1,0 +1,27 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: react2shell-insecure
+  namespace: insecure
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec"]
+    verbs: ["get", "list", "watch", "create"]   # create on pods/exec = the exec capability
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: react2shell-insecure
+  namespace: insecure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: react2shell-insecure
+subjects:
+  - kind: ServiceAccount
+    name: react2shell-insecure
+    namespace: insecure
