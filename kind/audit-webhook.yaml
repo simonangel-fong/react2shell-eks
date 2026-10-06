@@ -1,0 +1,17 @@
+# Audit webhook: apiserver POSTs audit events to Falco's k8saudit webserver.
+# The control-plane node reaches the webserver via its NodePort (30007) on
+# localhost (same node the apiserver runs on).
+apiVersion: v1
+kind: Config
+clusters:
+  - name: falco
+    cluster:
+      server: http://localhost:30007/k8s-audit
+contexts:
+  - context:
+      cluster: falco
+      user: ""
+    name: default-context
+current-context: default-context
+preferences: {}
+users: []

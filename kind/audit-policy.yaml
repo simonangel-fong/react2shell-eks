@@ -1,0 +1,15 @@
+# K8s API-server audit policy for Falco k8saudit.
+# Keep it minimal: capture Secret access (the cluster-secret breach step) and
+# drop the rest so the webhook isn't flooded.
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages:
+  - RequestReceived
+rules:
+  # Secret reads/writes -> Metadata level (verb, user, ns, name; not the value).
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets"]
+  # Everything else is ignored.
+  - level: None

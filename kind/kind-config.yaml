@@ -10,4 +10,27 @@ nodes:
       - containerPort: 30443   # argocd server NodePort -> localhost:8443
         hostPort: 8443
         protocol: TCP
+    # Mount the audit policy + webhook config into the control-plane node so the
+    # apiserver can emit audit events to Falco's k8saudit webserver.
+    extraMounts:
+      - hostPath: ./kind/audit-policy.yaml
+        containerPath: /etc/kubernetes/audit/audit-policy.yaml
+        readOnly: true
+      - hostPath: ./kind/audit-webhook.yaml
+        containerPath: /etc/kubernetes/audit/audit-webhook.yaml
+        readOnly: true
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            audit-policy-file: /etc/kubernetes/audit/audit-policy.yaml
+            audit-webhook-config-file: /etc/kubernetes/audit/audit-webhook.yaml
+            audit-webhook-batch-max-wait: 5s
+          extraVolumes:
+            - name: audit
+              hostPath: /etc/kubernetes/audit
+              mountPath: /etc/kubernetes/audit
+              readOnly: true
+              pathType: DirectoryOrCreate
   - role: worker

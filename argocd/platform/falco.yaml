@@ -1,5 +1,7 @@
 # Falco runtime-security sensor + Falcosidekick (ships events to Loki).
-# Mirrors the verified `helm install` values from docs/04_detect.md.
+# Syscall + k8saudit sources: syscalls catch the in-pod behaviour (shell, SA
+# token read); k8saudit catches the stolen-token API calls (cluster-secret read
+# in the prod ns). Mirrors the verified `helm install` from docs/04_detect.md.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -15,14 +17,54 @@ spec:
     targetRevision: 9.2.0
     helm:
       releaseName: falco
+      # Chart-shipped profile: enables the k8saudit plugin alongside the syscall
+      # driver and wires falcoctl to pull the k8saudit ruleset/plugin.
+      valueFiles:
+        - values-syscall-k8saudit.yaml
       values: |
         driver:
           kind: modern_ebpf
         tty: true
+        # Expose the k8saudit webserver as a NodePort so the control-plane
+        # apiserver can POST audit events to localhost:30007/k8s-audit.
+        falco:
+          webserver:
+            enabled: true
+            listen_port: 9765
+            k8s_audit_endpoint: /k8s-audit
+        service:
+          type: NodePort
+          ports:
+            - port: 9765
+              nodePort: 30007
+              protocol: TCP
+              name: k8saudit-webhook
         falcosidekick:
           enabled: true
           webui:
             enabled: false
+        # Custom rule: cluster-secret access via the K8s API (breach step 4).
+        # The react2shell SA (or anyone using its token) reading Secrets in the
+        # prod namespace is the last-resort signal that triggers hardening.
+        customRules:
+          cluster-secret-rules.yaml: |-
+            - rule: Cluster Secret Accessed via K8s API
+              desc: >
+                A Secret in the prod namespace was read/listed through the
+                Kubernetes API. Fires on the react2shell breach lateral-movement
+                step where the stolen SA token enumerates cross-namespace secrets.
+              condition: >
+                ka.verb in (get, list, watch)
+                and ka.target.resource = secrets
+                and ka.target.namespace = prod
+              output: >
+                Cluster secret accessed in prod ns
+                (verb=%ka.verb user=%ka.user.name sa=%ka.target.subresource
+                resource=%ka.target.resource ns=%ka.target.namespace
+                name=%ka.target.name uri=%ka.uri source=%ka.source.ips)
+              priority: CRITICAL
+              source: k8s_audit
+              tags: [k8s, secrets, react2shell, cluster-jewel]
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
