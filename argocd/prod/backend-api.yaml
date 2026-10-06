@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-api-config
+  namespace: prod
+data:
+  message: "This is backend API."
+  status: "success"
+  version: "1.0.0"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend-api
+  namespace: prod
+spec:
+  volumes:
+    - name: config-volume
+      configMap:
+        name: backend-api-config
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        - name: config-volume
+          mountPath: /usr/share/nginx/html
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 200m
+          memory: 512Mi

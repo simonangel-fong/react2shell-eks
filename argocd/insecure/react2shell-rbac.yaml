@@ -6,6 +6,7 @@ metadata:
   name: react2shell
   namespace: insecure
 ---
+# role: insecure
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -14,7 +15,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/exec"]
-    verbs: ["get", "list", "watch", "create"]   # create on pods/exec = the exec capability
+    verbs: ["get", "list", "watch", "create"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
     verbs: ["get", "list", "watch"]
@@ -33,6 +34,7 @@ subjects:
     name: react2shell
     namespace: insecure
 ---
+# clusterrole: permissive
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
