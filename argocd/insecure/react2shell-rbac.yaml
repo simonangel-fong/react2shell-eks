@@ -39,7 +39,7 @@ metadata:
   name: react2shell
 rules:
   - apiGroups: [""]
-    resources: ["pods", "configmaps", "secrets"]
+    resources: ["pods", "configmaps", "secrets","namespaces"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["apps"]
     resources: ["deployments"]

