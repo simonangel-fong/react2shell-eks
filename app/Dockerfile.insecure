@@ -1,0 +1,17 @@
+FROM node:20-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl jq \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install the pinned vulnerable dependency tree first (better layer caching).
+COPY react2shell/package.json react2shell/package-lock.json ./
+RUN npm ci
+
+# App source.
+COPY react2shell/ .
+
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
