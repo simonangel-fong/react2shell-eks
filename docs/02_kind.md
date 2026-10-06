@@ -121,33 +121,25 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 ![argocd_dashboard](./img/argocd_dashboard.png)
 
-- app
-
-![app_ui](./img/app_ui.png)
-
 ---
 
 ## Create secret
 
-| secret            | tier    | type    | ns     | value                     | description                   |
-| ----------------- | ------- | ------- | ------ | ------------------------- | ----------------------------- |
-| secret-pod-vuln   | pod     | generic | vuln   | pwd="pod-hello-world"     | secret mounted on pod in ENV; |
-| secret-pod-harden | pod     | generic | harden | pwd="pod-hello-world"     | secret mounted on pod in ENV; |
-| secret-cluster    | cluster | generic | db     | pwd="cluster-hello-world" | secret in different ns;       |
-
-- defer:
-  - host tier sensitive data
-  - cloud tier sensitive data
+| Secret           | Level     | Type    | Namespace | Value                                | Description                     |
+| ---------------- | --------- | ------- | --------- | ------------------------------------ | ------------------------------- |
+| container-secret | container | generic | insecure  | password="CoNtAinEr-sEcRet-SecURe"   | mounted on insecure pod in ENV; |
+| container-secret | container | generic | secure    | password="CoNtAinEr-sEcRet-InsECurE" | mounted on secure pod in ENV;   |
+| cluster-secret   | cluster   | generic | prod      | password="cLuSTer-SecReT"            | secret in different ns;         |
 
 ```sh
 # confirm
-kubectl get secret -A | grep -E 'secret-(pod|cluster)'
+kubectl get secret -A | grep -E '(container|cluster)-secret'
 # db            secret-cluster                 Opaque                          1      4m2s
 # harden        secret-pod-harden              Opaque                          1      4m2s
 # vuln          secret-pod-vuln                Opaque                          1      3m28s
 
 # confirm the pod-tier secret
-kubectl -n vuln exec deploy/react2shell -- printenv PWD_SECRET
+kubectl -n vuln exec deploy/react2shell-insecure -- printenv PWD_SECRET
 # pod-hello-world
 ```
 

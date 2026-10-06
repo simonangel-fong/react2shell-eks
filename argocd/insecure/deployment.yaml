@@ -1,48 +1,41 @@
-# ---
-# # namespace
-# apiVersion: v1
-# kind: Namespace
-# metadata:
-#   name: insecure
-# ---
-# # insecure app: react2shell
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: react2shell-insecure
-#   namespace: insecure
-#   labels:
-#     app: react2shell-insecure
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: react2shell-insecure
-#   template:
-#     metadata:
-#       labels:
-#         app: react2shell-insecure
-#     spec:
-#       # Intentional misconfig: pod runs as the frontend SA, so RCE yields its token.
-#       serviceAccountName: frontend
-#       containers:
-#         - name: react2shell-insecure
-#           image: simonangelfong/react2shell:insecure
-#           imagePullPolicy: Always
-#           ports:
-#             - containerPort: 3000
-#           env:
-#             # Pod-tier crown jewel, exposed in the pod environment (RCE-reachable).
-#             - name: PWD_SECRET
-#               valueFrom:
-#                 secretKeyRef:
-#                   name: secret-pod-vuln
-#                   key: pwd
-#           resources:
-#             requests:
-#               cpu: "100m"
-#               memory: "256Mi"
-#             limits:
-#               cpu: "200m"
-#               memory: "512Mi"
+---
+# insecure app: react2shell
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react2shell-insecure
+  namespace: insecure
+  labels:
+    app: react2shell-insecure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: react2shell-insecure
+  template:
+    metadata:
+      labels:
+        app: react2shell-insecure
+    spec:
+      serviceAccountName: react2shell
+      containers:
+        - name: react2shell-insecure
+          image: simonangelfong/react2shell:insecure
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            # container level crown jewel(RCE-reachable).
+            - name: CONTAINER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: container-secret
+                  key: password
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "200m"
+              memory: "512Mi"
 

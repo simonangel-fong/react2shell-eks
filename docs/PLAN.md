@@ -37,7 +37,7 @@ secure-aks/
 **Crown jewels (escalating blast radius)**
 
 - **Container level**: Service account token
-- **Cluster level**: Dynamo DB secret
+- **Cluster level**: DynamoDB secret
 - **Cloud level**: RDS secret
 
 **Hardening layers:**
