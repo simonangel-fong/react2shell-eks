@@ -1,0 +1,23 @@
+# leftover pod
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: leftover
+  namespace: insecure
+  labels:
+    app: leftover
+spec:
+  serviceAccountName: leftover
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports:
+        - containerPort: 80
+      resources:
+        requests:
+          cpu: 64m
+          memory: 64Mi
+        limits:
+          cpu: 128m
+          memory: 128Mi
