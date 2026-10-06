@@ -1,0 +1,34 @@
+# Falco runtime-security sensor + Falcosidekick (ships events to Loki).
+# Mirrors the verified `helm install` values from docs/04_detect.md.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: falco
+  namespace: argocd
+  finalizers:
+    - argocd.argoproj.io/resources-finalizer
+spec:
+  project: default
+  source:
+    repoURL: https://falcosecurity.github.io/charts
+    chart: falco
+    targetRevision: 6.4.2
+    helm:
+      releaseName: falco
+      values: |
+        driver:
+          kind: modern_ebpf
+        tty: true
+        falcosidekick:
+          enabled: true
+          webui:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
