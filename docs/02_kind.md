@@ -119,7 +119,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 - argo cd
 
-![argocd_dashboard](./img/argocd_dashboard.png)
+![argocd_app_local](./img/argocd_app_local.png)
 
 ---
 
@@ -134,13 +134,14 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 ```sh
 # confirm
 kubectl get secret -A | grep -E '(container|cluster)-secret'
-# db            secret-cluster                 Opaque                          1      4m2s
-# harden        secret-pod-harden              Opaque                          1      4m2s
-# vuln          secret-pod-vuln                Opaque                          1      3m28s
+# insecure      container-secret               Opaque                          1      25m
+# prod          cluster-secret                 Opaque                          1      5m39s
+# secure        container-secret               Opaque                          1      3m20s
+
 
 # confirm the pod-tier secret
-kubectl -n vuln exec deploy/react2shell-insecure -- printenv PWD_SECRET
-# pod-hello-world
+kubectl -n insecure exec deploy/react2shell-insecure -- printenv CONTAINER_SECRET
+# CoNtAinEr-sEcRet-InsECurE
 ```
 
 ---
