@@ -1,0 +1,23 @@
+# Deploys secure app
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: secure
+  namespace: argocd
+  finalizers:
+    - argocd.argoproj.io/resources-finalizer
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/simonangel-fong/react2shell-eks.git
+    targetRevision: master
+    path: argocd/secure
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: secure
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
