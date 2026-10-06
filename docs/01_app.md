@@ -1,8 +1,8 @@
-# reat2shell: Vulnerable app
+# reat2shell: insecure app
 
 [Back](../README.md)
 
-- [reat2shell: Vulnerable app](#reat2shell-vulnerable-app)
+- [reat2shell: insecure app](#reat2shell-insecure-app)
   - [Local App](#local-app)
   - [Dockerize](#dockerize)
   - [Push image](#push-image)
