@@ -1,6 +1,17 @@
 # Local .terraform directories
 .terraform/
 
+# Saved Terraform plans
+*.tfplan
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Local environment files; keep example templates trackable
+.env*
+!.env.example
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
