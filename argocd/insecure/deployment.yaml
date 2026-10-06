@@ -20,7 +20,7 @@ spec:
       serviceAccountName: react2shell
       containers:
         - name: react2shell-insecure
-          image: simonangelfong/react2shell:insecure
+          image: docker.io/simonangelfong/react2shell:insecure
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
