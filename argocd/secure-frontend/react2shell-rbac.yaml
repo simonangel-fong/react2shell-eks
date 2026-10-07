@@ -4,14 +4,14 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: react2shell
-  namespace: insecure
+  namespace: secure-frontend
 ---
 # role: insecure
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: react2shell
-  namespace: insecure
+  namespace: secure-frontend
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/exec"]
@@ -24,7 +24,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: react2shell
-  namespace: insecure
+  namespace: secure-frontend
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -32,7 +32,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: react2shell
-    namespace: insecure
+    namespace: secure-frontend
 ---
 # clusterrole: permissive
 apiVersion: rbac.authorization.k8s.io/v1
@@ -41,7 +41,7 @@ metadata:
   name: react2shell
 rules:
   - apiGroups: [""]
-    resources: ["pods", "configmaps", "secrets","namespaces"]
+    resources: ["pods", "configmaps", "secrets", "namespaces"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
@@ -58,4 +58,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: react2shell
-    namespace: insecure
+    namespace: secure-frontend

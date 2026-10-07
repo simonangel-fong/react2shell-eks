@@ -1,8 +1,7 @@
-# Platform app-of-apps: deploys platform tooling (falco, loki, grafana...).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: 02-platform
+  name: insecure
   namespace: argocd
   finalizers:
     - argocd.argoproj.io/resources-finalizer
@@ -11,10 +10,10 @@ spec:
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
     targetRevision: master
-    path: argocd/platform
+    path: argocd/insecure-backend
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: insecure-backend
   syncPolicy:
     automated:
       prune: true

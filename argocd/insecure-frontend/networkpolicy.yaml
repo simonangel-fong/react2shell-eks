@@ -1,12 +1,12 @@
 ---
-# default: deny all
+# default-deny all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny-all
-  namespace: prod
+  namespace: insecure-frontend
 spec:
-  podSelector: {} # all pods in prod
+  podSelector: {} # all pods
   policyTypes:
     - Ingress
     - Egress
@@ -16,9 +16,9 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-dns-egress
-  namespace: prod
+  namespace: insecure-frontend
 spec:
-  podSelector: {} # all pods in prod
+  podSelector: {} # all pods
   policyTypes:
     - Egress
   egress:
@@ -32,23 +32,19 @@ spec:
         - protocol: TCP
           port: 53
 ---
-# allow the api only from inside the prod namespace
+# allow ingress to the app on 3000
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-nginx-api-from-prod
-  namespace: prod
+  name: allow-app-ingress
+  namespace: insecure-frontend
 spec:
   podSelector:
     matchLabels:
-      app: nginx-api
+      app: react2shell
   policyTypes:
     - Ingress
   ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: prod
-      ports:
+    - ports:
         - protocol: TCP
-          port: 80
+          port: 3000

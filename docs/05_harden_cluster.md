@@ -7,6 +7,7 @@
   - [Step](#step)
   - [Network Policy](#network-policy)
     - [Install Calico](#install-calico)
+  - [RBAC](#rbac)
 
 ---
 
@@ -50,7 +51,7 @@ k get node
 # ##############################
 # before: insecure pod can reach prod api
 # ##############################
-python scripts/rce.py http://localhost:8080 "curl -s -m 5 http://nginx-api.prod/api/v1/healthz"
+python scripts/rce.py http://localhost:8080 "curl -m 5 http://nginx-api.prod/api/v1/healthz"
 # {"status":"healthy","message":"Service is running"}
 
 # ##############################
@@ -68,8 +69,11 @@ kubectl get netpol -n insecure
 # allow-dns-egress    <none>            109s
 # default-deny-all    <none>            109s
 
-python scripts/rce.py http://localhost:8080 "curl -s -m 5 http://nginx-api.prod/api/v1/healthz"
-# (no response / timeout)
-
-kubectl exec -it 
+python scripts/rce.py http://localhost:8080 "curl -S -m 5 http://nginx-api.prod/api/v1/healthz"
+# curl: (28) Connection timed out after 5000 milliseconds
 ```
+
+---
+
+## RBAC
+

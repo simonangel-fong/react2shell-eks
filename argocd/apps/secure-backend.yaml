@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: insecure
+  name: prod
   namespace: argocd
   finalizers:
     - argocd.argoproj.io/resources-finalizer
@@ -11,10 +11,10 @@ spec:
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
     targetRevision: master
-    path: argocd/insecure
+    path: argocd/secure-backend
   destination:
     server: https://kubernetes.default.svc
-    namespace: insecure
+    namespace: secure-backend
   syncPolicy:
     automated:
       prune: true

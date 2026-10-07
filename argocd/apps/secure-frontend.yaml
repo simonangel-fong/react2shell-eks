@@ -11,10 +11,10 @@ spec:
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
     targetRevision: master
-    path: argocd/secure
+    path: argocd/secure-frontend
   destination:
     server: https://kubernetes.default.svc
-    namespace: secure
+    namespace: secure-frontend
   syncPolicy:
     automated:
       prune: true

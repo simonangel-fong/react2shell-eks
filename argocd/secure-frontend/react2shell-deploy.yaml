@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: react2shell
-  namespace: insecure
+  namespace: secure-frontend
   labels:
     app: react2shell
 spec:

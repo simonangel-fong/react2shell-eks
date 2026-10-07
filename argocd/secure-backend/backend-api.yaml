@@ -2,7 +2,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nginx-api-conf
+  name: backend-api-conf
+  namespace: secure-backend
 data:
   default.conf: |
     server {
@@ -27,21 +28,22 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-api
+  name: backend-api
+  namespace: secure-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx-api
+      app: backend-api
   template:
     metadata:
       labels:
-        app: nginx-api
+        app: backend-api
     spec:
       volumes:
         - name: config-volume
           configMap:
-            name: nginx-api-conf
+            name: backend-api-conf
       containers:
         - name: nginx
           image: nginx:alpine
@@ -62,13 +64,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-api
-  namespace: prod
+  name: backend-api
+  namespace: secure-backend
   labels:
-    app: nginx-api
+    app: backend-api
 spec:
   selector:
-    app: nginx-api
+    app: backend-api
   ports:
     - name: http
       port: 80

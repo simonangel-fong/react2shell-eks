@@ -1,0 +1,39 @@
+# insecure app: react2shell
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react2shell
+  namespace: insecure-frontend
+  labels:
+    app: react2shell
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: react2shell
+  template:
+    metadata:
+      labels:
+        app: react2shell
+    spec:
+      serviceAccountName: react2shell
+      containers:
+        - name: react2shell
+          image: docker.io/simonangelfong/react2shell:insecure
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            # container level crown jewel(RCE-reachable).
+            - name: CONTAINER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: container-secret
+                  key: password
+          resources:
+            requests:
+              cpu: 512m
+              memory: 512Mi
+            limits:
+              cpu: 1024m
+              memory: 1024Mi

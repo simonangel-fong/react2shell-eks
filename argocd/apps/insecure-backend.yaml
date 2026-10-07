@@ -11,10 +11,10 @@ spec:
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
     targetRevision: master
-    path: argocd/prod
+    path: argocd/insecure-backend
   destination:
     server: https://kubernetes.default.svc
-    namespace: prod
+    namespace: insecure-backend
   syncPolicy:
     automated:
       prune: true
