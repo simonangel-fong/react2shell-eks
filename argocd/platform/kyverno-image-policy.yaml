@@ -1,65 +1,36 @@
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
+# Kyverno image policy (CEL)
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
 metadata:
   name: image-policy
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  validationFailureAction: Enforce        # block, don't just audit
-  background: false
-  rules:
+  validationActions:
+    - Deny
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
     # 1) registry must be docker.io
-    - name: require-docker-registry
-      match:
-        any:
-          - resources:
-              kinds: [Pod]
-      validate:
-        message: "images must come from docker.io"
-        pattern:
-          spec:
-            containers:
-              - name: "*"
-                image: "docker.io/*"
+    - message: "images must come from docker.io"
+      expression: >-
+        object.spec.containers.all(c, image(c.image).registry() == 'docker.io')
 
     # 2) must not use the :latest tag
-    - name: disallow-latest-tag
-      match:
-        any:
-          - resources:
-              kinds: [Pod]
-      validate:
-        message: "image must not use the :latest tag"
-        pattern:
-          spec:
-            containers:
-              - name: "*"
-                image: "!*:latest"
+    - message: "image must not use the :latest tag"
+      expression: >-
+        object.spec.containers.all(c, image(c.image).tag() != 'latest')
 
-    # 3) must be explicitly tagged (reject images with no tag)
-    - name: require-tag
-      match:
-        any:
-          - resources:
-              kinds: [Pod]
-      validate:
-        message: "image must have an explicit tag"
-        pattern:
-          spec:
-            containers:
-              - name: "*"
-                image: "*:*"
+    # 3) must be explicitly tagged
+    - message: "image must have an explicit tag"
+      expression: >-
+        object.spec.containers.all(c, image(c.image).tag() != '')
 
     # 4) must not use the known-vulnerable tag
-    - name: block-vulnerable-tag
-      match:
-        any:
-          - resources:
-              kinds: [Pod]
-      validate:
-        message: "the :insecure image tag is forbidden"
-        pattern:
-          spec:
-            containers:
-              - name: "*"
-                image: "!*:insecure"
+    - message: "the :insecure image tag is forbidden"
+      expression: >-
+        object.spec.containers.all(c, image(c.image).tag() != 'insecure')
