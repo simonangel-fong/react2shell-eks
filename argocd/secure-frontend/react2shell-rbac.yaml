@@ -33,29 +33,3 @@ subjects:
   - kind: ServiceAccount
     name: react2shell
     namespace: secure-frontend
----
-# clusterrole: permissive
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: react2shell
-rules:
-  - apiGroups: [""]
-    resources: ["pods", "configmaps", "secrets", "namespaces"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: react2shell
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: react2shell
-subjects:
-  - kind: ServiceAccount
-    name: react2shell
-    namespace: secure-frontend
