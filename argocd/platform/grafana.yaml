@@ -28,11 +28,93 @@ spec:
             datasources:
               - name: Loki
                 type: loki
+                uid: loki            # fixed uid so the alert rule can reference it
                 access: proxy
                 url: http://loki.monitoring:3100
                 isDefault: true
                 jsonData:
                   maxLines: 1000
+
+        # Slack webhook URL comes from the grafana-slack secret (NOT in git).
+        # Grafana expands ${SLACK_WEBHOOK_URL} in provisioned contact points.
+        envFromSecret: grafana-slack
+
+        # ---- Unified alerting: contact point + policy + rule (provisioned) ----
+        alerting:
+          contactpoints.yaml:
+            apiVersion: 1
+            contactPoints:
+              - orgId: 1
+                name: slack
+                receivers:
+                  - uid: slack-webhook
+                    type: slack
+                    settings:
+                      url: ${SLACK_WEBHOOK_URL}
+                      title: |
+                        🚨 {{ .CommonLabels.alertname }}
+                      text: |
+                        {{ range .Alerts }}{{ .Annotations.summary }}
+                        {{ end }}
+          policies.yaml:
+            apiVersion: 1
+            policies:
+              - orgId: 1
+                receiver: slack
+                group_by: [alertname]
+                group_wait: 10s
+                group_interval: 1m
+                repeat_interval: 1h
+          rules.yaml:
+            apiVersion: 1
+            groups:
+              - orgId: 1
+                name: react2shell
+                folder: react2shell
+                interval: 30s
+                rules:
+                  - uid: cluster-secret-access
+                    title: Cluster Secret Accessed (React2Shell)
+                    condition: C
+                    for: 0s
+                    labels:
+                      severity: critical
+                    annotations:
+                      summary: >
+                        Falco CRITICAL — cluster-secret read in prod ns via the
+                        K8s API (stolen SA token). React2Shell breach step 4.
+                    data:
+                      # A: count Falco cluster-secret events in the last 1m
+                      - refId: A
+                        relativeTimeRange: { from: 60, to: 0 }
+                        datasourceUid: loki
+                        model:
+                          datasource: { type: loki, uid: loki }
+                          expr: >
+                            count_over_time({rule="Cluster Secret Accessed via K8s API"}[1m])
+                          queryType: instant
+                          refId: A
+                      # B: reduce the series to a single number
+                      - refId: B
+                        relativeTimeRange: { from: 60, to: 0 }
+                        datasourceUid: __expr__
+                        model:
+                          type: reduce
+                          reducer: last
+                          expression: A
+                          datasource: { type: __expr__, uid: __expr__ }
+                          refId: B
+                      # C: fire when count > 0
+                      - refId: C
+                        relativeTimeRange: { from: 60, to: 0 }
+                        datasourceUid: __expr__
+                        model:
+                          type: threshold
+                          expression: B
+                          datasource: { type: __expr__, uid: __expr__ }
+                          conditions:
+                            - evaluator: { type: gt, params: [0] }
+                          refId: C
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
