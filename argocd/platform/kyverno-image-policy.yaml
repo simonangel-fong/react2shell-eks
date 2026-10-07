@@ -1,11 +1,9 @@
-# Kyverno image policy — rejects insecure images at admission.
-# Needs the Kyverno CRDs first, so sync it after platform-kyverno.
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
   name: image-policy
   annotations:
-    argocd.argoproj.io/sync-wave: "1"   # after kyverno (wave 0)
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   validationFailureAction: Enforce        # block, don't just audit
   background: false
