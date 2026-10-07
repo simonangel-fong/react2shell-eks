@@ -67,15 +67,13 @@ spec:
                 interval: 30s
                 rules:
                   - uid: cluster-secret-access
-                    title: Cluster Secret Accessed (React2Shell)
+                    title: Cluster Secret Accessed
                     condition: C
                     for: 0s
                     labels:
                       severity: critical
                     annotations:
-                      summary: >
-                        Falco CRITICAL — cluster-secret read in prod ns via the
-                        K8s API (stolen SA token). React2Shell breach step 4.
+                      summary: Secret read in the prod namespace via the Kubernetes API.
                     data:
                       # A: count Falco cluster-secret events in the last 1m
                       - refId: A
