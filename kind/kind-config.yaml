@@ -1,6 +1,9 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: react2shell-eks
+networking:
+  disableDefaultCNI: true        # drop kindnet; install Calico for NP enforcement
+  podSubnet: "10.244.0.0/16"
 nodes:
   - role: control-plane
     extraPortMappings:

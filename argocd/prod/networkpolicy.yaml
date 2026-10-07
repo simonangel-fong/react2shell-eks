@@ -1,54 +1,54 @@
----
-# default: deny all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-all
-  namespace: prod
-spec:
-  podSelector: {} # all pods in prod
-  policyTypes:
-    - Ingress
-    - Egress
----
-# allow DNS egress
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-dns-egress
-  namespace: prod
-spec:
-  podSelector: {} # all pods in prod
-  policyTypes:
-    - Egress
-  egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
-      ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53
----
-# allow the api only from inside the prod namespace
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-nginx-api-from-prod
-  namespace: prod
-spec:
-  podSelector:
-    matchLabels:
-      app: nginx-api
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: prod
-      ports:
-        - protocol: TCP
-          port: 80
+# ---
+# # default: deny all
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: default-deny-all
+#   namespace: prod
+# spec:
+#   podSelector: {} # all pods in prod
+#   policyTypes:
+#     - Ingress
+#     - Egress
+# ---
+# # allow DNS egress
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: allow-dns-egress
+#   namespace: prod
+# spec:
+#   podSelector: {} # all pods in prod
+#   policyTypes:
+#     - Egress
+#   egress:
+#     - to:
+#         - namespaceSelector:
+#             matchLabels:
+#               kubernetes.io/metadata.name: kube-system
+#       ports:
+#         - protocol: UDP
+#           port: 53
+#         - protocol: TCP
+#           port: 53
+# ---
+# # allow the api only from inside the prod namespace
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: allow-nginx-api-from-prod
+#   namespace: prod
+# spec:
+#   podSelector:
+#     matchLabels:
+#       app: nginx-api
+#   policyTypes:
+#     - Ingress
+#   ingress:
+#     - from:
+#         - namespaceSelector:
+#             matchLabels:
+#               kubernetes.io/metadata.name: prod
+#       ports:
+#         - protocol: TCP
+#           port: 80
