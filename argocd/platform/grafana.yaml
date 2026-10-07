@@ -15,44 +15,28 @@ spec:
     helm:
       releaseName: grafana
       values: |
-        # lab creds — change before any non-local use
+        # lab creds
         adminUser: admin
         adminPassword: admin
-        persistence:
-          enabled: true
-          size: 1Gi
-        # RWO PVC: tear the old pod down before starting the new one, else two
-        # pods fight over the volume and the rollout wedges.
-        deploymentStrategy:
-          type: Recreate
-        # The chown init container fails on kind's local-path volume
-        # ("chown: /var/lib/grafana/pdf: Permission denied"). Let the kubelet
-        # set volume ownership via fsGroup instead (grafana uid/gid = 472).
-        initChownData:
-          enabled: false
-        securityContext:
-          fsGroup: 472
-          runAsUser: 472
-          runAsGroup: 472
-        # pre-wire the Loki datasource so it's ready on first boot
+        # Loki datasource (orgId required, else provisioning errors on restart)
         datasources:
           datasources.yaml:
             apiVersion: 1
             datasources:
               - name: Loki
+                orgId: 1
                 type: loki
-                uid: loki            # fixed uid so the alert rule can reference it
+                uid: loki            # fixed uid, referenced by the alert rule
                 access: proxy
                 url: http://loki.monitoring:3100
                 isDefault: true
                 jsonData:
                   maxLines: 1000
 
-        # Slack webhook URL comes from the grafana-slack secret (NOT in git).
-        # Grafana expands ${SLACK_WEBHOOK_URL} in provisioned contact points.
+        # ${SLACK_WEBHOOK_URL} comes from the grafana-slack secret (not in git)
         envFromSecret: grafana-slack
 
-        # ---- Unified alerting: contact point + policy + rule (provisioned) ----
+        # alerting: contact point + policy + rule
         alerting:
           contactpoints.yaml:
             apiVersion: 1
@@ -62,11 +46,7 @@ spec:
                 receivers:
                   - uid: slack-webhook
                     type: slack
-                    # No custom title/text: Grafana's default Slack message
-                    # already shows the alert name + summary annotation. Custom
-                    # Go-template fields cannot live here — the Grafana chart
-                    # runs these files through Helm tpl, which would try to
-                    # evaluate the braces and fail.
+                    # no title/text: Go-templates break the chart's helm tpl
                     settings:
                       url: ${SLACK_WEBHOOK_URL}
           policies.yaml:
