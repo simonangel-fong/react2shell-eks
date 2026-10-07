@@ -6,7 +6,6 @@
   - [Cluster Harden](#cluster-harden)
   - [Step](#step)
   - [Network Policy](#network-policy)
-    - [Install Calico](#install-calico)
   - [RBAC](#rbac)
 
 ---
@@ -36,16 +35,7 @@
   - isolate connection between namepsaces
   - the `insecure` pod can no longer curl it.
 
-### Install Calico
 
-```sh
-kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.33.0/manifests/calico.yaml
-
-k get node
-# NAME                            STATUS   ROLES           AGE   VERSION
-# react2shell-eks-control-plane   Ready    control-plane   14m   v1.35.0
-# react2shell-eks-worker          Ready    <none>          14m   v1.35.0
-```
 
 ```sh
 # ##############################

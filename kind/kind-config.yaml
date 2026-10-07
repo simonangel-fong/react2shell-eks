@@ -2,15 +2,18 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: react2shell-eks
 networking:
-  disableDefaultCNI: true        # drop kindnet; install Calico for NP enforcement
+  disableDefaultCNI: true # drop kindnet; install Calico for NP enforcement
   podSubnet: "10.244.0.0/16"
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 30080   # vulnerable app NodePort -> localhost:8080
+      - containerPort: 30000 # vulnerable app NodePort -> localhost:8000
+        hostPort: 8000
+        protocol: TCP
+      - containerPort: 30080 # secure app NodePort -> localhost:8080
         hostPort: 8080
         protocol: TCP
-      - containerPort: 30443   # argocd server NodePort -> localhost:8443
+      - containerPort: 30443 # argocd server NodePort -> localhost:8443
         hostPort: 8443
         protocol: TCP
     # Mount the audit policy + webhook config into the control-plane node so the

@@ -50,6 +50,14 @@ kind create cluster --config kind/kind-config.yaml
 
 kind export kubeconfig --name react2shell-eks
 
+# Install Calico
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.33.0/manifests/calico.yaml
+
+k get node
+# NAME                            STATUS   ROLES           AGE   VERSION
+# react2shell-eks-control-plane   Ready    control-plane   14m   v1.35.0
+# react2shell-eks-worker          Ready    <none>          14m   v1.35.0
+
 # Verify
 kubectl get nodes -o wide
 # NAME                            STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION                      CONTAINER-RUNTIME
@@ -103,15 +111,11 @@ helm install argocd argo/argo-cd --namespace argocd --create-namespace
 # get pwd
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode; echo
 # port forward
-kubectl port-forward service/argocd-server -n argocd 8000:443
+kubectl port-forward service/argocd-server -n argocd 8443:443
 
 # ##############################
 # deploy app-of-apps
 # ##############################
-git add argocd
-git commit -m "argocd: app-of-apps + react2shell manifests"
-git push
-
 kubectl apply -n argocd -f argocd/root-app.yaml
 
 # Verify
