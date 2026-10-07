@@ -49,13 +49,13 @@ spec:
                 receivers:
                   - uid: slack-webhook
                     type: slack
+                    # No custom title/text: Grafana's default Slack message
+                    # already shows the alert name + summary annotation. Custom
+                    # Go-template fields cannot live here — the Grafana chart
+                    # runs these files through Helm tpl, which would try to
+                    # evaluate the braces and fail.
                     settings:
                       url: ${SLACK_WEBHOOK_URL}
-                      title: |
-                        🚨 {{ .CommonLabels.alertname }}
-                      text: |
-                        {{ range .Alerts }}{{ .Annotations.summary }}
-                        {{ end }}
           policies.yaml:
             apiVersion: 1
             policies:
