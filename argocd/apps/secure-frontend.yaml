@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: secure
+  name: secure-frontend
   namespace: argocd
   finalizers:
     - argocd.argoproj.io/resources-finalizer

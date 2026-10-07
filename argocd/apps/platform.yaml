@@ -1,4 +1,3 @@
-# Platform app-of-apps: deploys platform tooling (falco, loki, grafana...).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

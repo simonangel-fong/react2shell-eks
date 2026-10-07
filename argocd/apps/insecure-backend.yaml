@@ -1,8 +1,7 @@
-# Deploys the intentionally vulnerable React2Shell app (CVE-2025-55182).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: prod
+  name: insecure-backend
   namespace: argocd
   finalizers:
     - argocd.argoproj.io/resources-finalizer
