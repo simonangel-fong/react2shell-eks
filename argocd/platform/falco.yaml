@@ -59,9 +59,9 @@ spec:
                 and ka.target.namespace = prod
               output: >
                 Cluster secret accessed in prod ns
-                (verb=%ka.verb user=%ka.user.name sa=%ka.target.subresource
+                (verb=%ka.verb user=%ka.user.name
                 resource=%ka.target.resource ns=%ka.target.namespace
-                name=%ka.target.name uri=%ka.uri source=%ka.source.ips)
+                name=%ka.target.name uri=%ka.uri source=%ka.sourceips)
               priority: CRITICAL
               source: k8s_audit
               tags: [k8s, secrets, react2shell, cluster-jewel]

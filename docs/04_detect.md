@@ -147,7 +147,7 @@ custom rule via `customRules`:
   output: >
     Cluster secret accessed in prod ns
     (verb=%ka.verb user=%ka.user.name resource=%ka.target.resource
-    ns=%ka.target.namespace name=%ka.target.name source=%ka.source.ips)
+    ns=%ka.target.namespace name=%ka.target.name source=%ka.sourceips)
   priority: CRITICAL
   source: k8s_audit
   tags: [k8s, secrets, react2shell, cluster-jewel]
