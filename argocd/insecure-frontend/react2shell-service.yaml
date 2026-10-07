@@ -6,9 +6,11 @@ metadata:
   labels:
     app: react2shell
 spec:
+  type: NodePort
   selector:
     app: react2shell
   ports:
     - name: http
-      port: 3000
+      port: 80
       targetPort: 3000
+      nodePort: 30080   # -> host localhost:8080 via kind-config port mapping
