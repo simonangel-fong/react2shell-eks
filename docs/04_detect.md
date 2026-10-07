@@ -134,8 +134,12 @@ docker exec react2shell-eks-control-plane \
 #### 2. Falco k8saudit + custom rule (GitOps)
 
 `argocd/platform/falco.yaml` loads the chart's `values-syscall-k8saudit.yaml`
-profile, exposes the k8saudit webserver on NodePort `30007`, and ships the
-custom rule via `customRules`:
+profile — which loads the k8saudit plugin (its own webserver on `:9765`) and a
+`k8saudit-webhook` NodePort service (`30007 -> 9765`) — overrides only the
+driver to `modern_ebpf`, and ships the custom rule via `customRules`.
+
+> Do NOT add a `service:`/`webserver` block of your own: it collides with the
+> plugin's 9765 listener (`bind: address already in use`).
 
 ```yaml
 - rule: Cluster Secret Accessed via K8s API
@@ -159,13 +163,13 @@ kubectl -n argocd get app falco
 # NAME    SYNC STATUS   HEALTH STATUS
 # falco   Synced        Healthy
 
-kubectl -n monitoring get svc falco
-# NAME    TYPE       CLUSTER-IP      PORT(S)          AGE
-# falco   NodePort   10.96.x.x       9765:30007/TCP   1m
+kubectl -n monitoring get svc falco-k8saudit-webhook
+# NAME                     TYPE       CLUSTER-IP   PORT(S)          AGE
+# falco-k8saudit-webhook   NodePort   10.96.x.x    9765:30007/TCP   1m
 
 kubectl -n monitoring logs ds/falco -c falco | grep -i k8saudit
 # Loaded plugin 'k8saudit' ...
-# Starting webserver, listening on port 9765
+# (k8saudit plugin) listening on http://:9765/k8s-audit
 ```
 
 #### 3. Replay the breach → CRITICAL alert

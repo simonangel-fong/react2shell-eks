@@ -22,23 +22,14 @@ spec:
       valueFiles:
         - values-syscall-k8saudit.yaml
       values: |
+        # Override only the driver. The values-syscall-k8saudit.yaml profile
+        # already loads the k8saudit plugin (own webserver on :9765) and the
+        # "k8saudit-webhook" NodePort service (30007 -> 9765) that the apiserver
+        # posts audit events to. Do NOT add a `service:`/webserver block — it
+        # collides with the plugin's 9765 listener ("address already in use").
         driver:
           kind: modern_ebpf
         tty: true
-        # Expose the k8saudit webserver as a NodePort so the control-plane
-        # apiserver can POST audit events to localhost:30007/k8s-audit.
-        falco:
-          webserver:
-            enabled: true
-            listen_port: 9765
-            k8s_audit_endpoint: /k8s-audit
-        service:
-          type: NodePort
-          ports:
-            - port: 9765
-              nodePort: 30007
-              protocol: TCP
-              name: k8saudit-webhook
         falcosidekick:
           enabled: true
           webui:
