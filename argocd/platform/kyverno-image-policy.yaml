@@ -15,10 +15,10 @@ spec:
         operations: [CREATE, UPDATE]
         resources: [pods]
   validations:
-    # 1) registry must be docker.io
-    - message: "images must come from docker.io"
+    # 1) registry must be docker hub (image() normalizes docker.io -> index.docker.io)
+    - message: "images must come from docker hub (index.docker.io)"
       expression: >-
-        object.spec.containers.all(c, image(c.image).registry() == 'docker.io')
+        object.spec.containers.all(c, image(c.image).registry() == 'index.docker.io')
 
     # 2) must not use the :latest tag
     - message: "image must not use the :latest tag"
