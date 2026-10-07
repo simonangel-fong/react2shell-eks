@@ -1,7 +1,3 @@
-# Falco runtime-security sensor + Falcosidekick (ships events to Loki).
-# Syscall + k8saudit sources: syscalls catch the in-pod behaviour (shell, SA
-# token read); k8saudit catches the stolen-token API calls (cluster-secret read
-# in the prod ns). Mirrors the verified `helm install` from docs/04_detect.md.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -34,6 +30,11 @@ spec:
           enabled: true
           webui:
             enabled: false
+          # Ship every Falco event to Loki (Grafana queries it from there).
+          config:
+            loki:
+              hostport: http://loki.monitoring:3100
+              minimumpriority: notice
         # Custom rule: cluster-secret access via the K8s API (breach step 4).
         # The react2shell SA (or anyone using its token) reading Secrets in the
         # prod namespace is the last-resort signal that triggers hardening.

@@ -1,0 +1,44 @@
+# Grafana — queries Loki for Falco events; Slack alerting added in step 4.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  finalizers:
+    - argocd.argoproj.io/resources-finalizer
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: 10.5.15
+    helm:
+      releaseName: grafana
+      values: |
+        # lab creds — change before any non-local use
+        adminUser: admin
+        adminPassword: admin
+        persistence:
+          enabled: true
+          size: 1Gi
+        # pre-wire the Loki datasource so it's ready on first boot
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Loki
+                type: loki
+                access: proxy
+                url: http://loki.monitoring:3100
+                isDefault: true
+                jsonData:
+                  maxLines: 1000
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
