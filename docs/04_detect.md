@@ -208,21 +208,19 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
 - 2. Store the webhook as a secret (NOT in git)
 
 ```sh
-# Grafana reads ${SLACK_WEBHOOK_URL} from this secret via envFromSecret.
-kubectl -n monitoring create secret generic grafana-slack --from-literal=SLACK_WEBHOOK_URL='https://hooks.slack.com/services/T.../B.../xxxx'
-# secret/grafana-slack created
+# no quotes around the URL
+kubectl -n monitoring create secret generic grafana-slack \
+  --from-literal=SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../xxxx
 ```
 
 - 3. Grafana alerting (provisioned in `argocd/platform/grafana.yaml`)
 
 ```sh
-# restart grafana to pick up the secret + alerting provisioning
 kubectl -n argocd get app grafana        # Synced / Healthy
-kubectl -n monitoring rollout restart deploy/grafana
+# NAME      SYNC STATUS   HEALTH STATUS
+# grafana   Synced        Healthy
 
-# verify provisioning (Grafana UI -> Alerting)
-#   Contact points -> "slack"  (Test -> message appears in Slack)
-#   Alert rules    -> "Cluster Secret Accessed (React2Shell)"  state=Normal
+kubectl -n monitoring rollout restart deploy/grafana
 ```
 
 - 4. Replay the breach → Slack alert

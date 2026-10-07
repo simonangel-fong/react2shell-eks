@@ -62,8 +62,8 @@ spec:
             apiVersion: 1
             groups:
               - orgId: 1
-                name: react2shell
-                folder: react2shell
+                name: falco-alerts
+                folder: falco-alerts
                 interval: 30s
                 rules:
                   - uid: cluster-secret-access
