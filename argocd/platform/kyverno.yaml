@@ -1,10 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kyverno
+  name: platform-kyverno
   namespace: argocd
+  labels:
+    tier: platform
   annotations:
     argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
+  finalizers:
+    - argocd.argoproj.io/resources-finalizer
 spec:
   destination:
     namespace: kyverno
