@@ -1,27 +1,27 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform-kyverno
+  name: kyverno
   namespace: argocd
-  labels:
-    tier: platform
-  finalizers:
-    - argocd.argoproj.io/resources-finalizer
+  annotations:
+    argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
 spec:
+  destination:
+    namespace: kyverno
+    server: https://kubernetes.default.svc
   project: default
   source:
-    repoURL: https://kyverno.github.io/kyverno/
     chart: kyverno
+    repoURL: https://kyverno.github.io/kyverno
     targetRevision: 3.9.1
     helm:
-      releaseName: kyverno
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: kyverno
+      values: |
+        webhookLabels:
+          app.kubernetes.io/managed-by: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true # Kyverno CRDs are large
+      - ServerSideApply=true
