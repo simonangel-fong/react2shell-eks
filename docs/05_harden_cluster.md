@@ -67,3 +67,14 @@ python scripts/rce.py http://localhost:8080 "curl -S -m 5 http://nginx-api.prod/
 
 ## RBAC
 
+- drop unneccessary cluster role and clusterrolebinding, role and rolebinding
+
+```sh
+# confirm
+# list
+kubectl auth can-i --list --as=system:serviceaccount:secure-frontend:react2shell -n secure-frontend
+
+# list secrets
+kubectl auth can-i list secrets --all-namespaces --as=system:serviceaccount:secure-frontend:react2shell   # no
+
+```
