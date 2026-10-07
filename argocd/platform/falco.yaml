@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: falco
+  name: platform-falco
   namespace: argocd
+  labels:
+    tier: platform
   finalizers:
     - argocd.argoproj.io/resources-finalizer
 spec:

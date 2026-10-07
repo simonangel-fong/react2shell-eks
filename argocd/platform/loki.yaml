@@ -1,10 +1,10 @@
-# Loki — log store for Falco events (fed by Falcosidekick, queried by Grafana).
-# SingleBinary + filesystem: lab-grade, fits kind (no object storage / caches).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: loki
+  name: platform-loki
   namespace: argocd
+  labels:
+    tier: platform
   finalizers:
     - argocd.argoproj.io/resources-finalizer
 spec:

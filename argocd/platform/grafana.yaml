@@ -1,9 +1,10 @@
-# Grafana — queries Loki for Falco events; Slack alerting added in step 4.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: grafana
+  name: platform-grafana
   namespace: argocd
+  labels:
+    tier: platform
   finalizers:
     - argocd.argoproj.io/resources-finalizer
 spec:
