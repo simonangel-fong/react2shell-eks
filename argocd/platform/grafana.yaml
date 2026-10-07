@@ -21,6 +21,19 @@ spec:
         persistence:
           enabled: true
           size: 1Gi
+        # RWO PVC: tear the old pod down before starting the new one, else two
+        # pods fight over the volume and the rollout wedges.
+        deploymentStrategy:
+          type: Recreate
+        # The chown init container fails on kind's local-path volume
+        # ("chown: /var/lib/grafana/pdf: Permission denied"). Let the kubelet
+        # set volume ownership via fsGroup instead (grafana uid/gid = 472).
+        initChownData:
+          enabled: false
+        securityContext:
+          fsGroup: 472
+          runAsUser: 472
+          runAsGroup: 472
         # pre-wire the Loki datasource so it's ready on first boot
         datasources:
           datasources.yaml:
