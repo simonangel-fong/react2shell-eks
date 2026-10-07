@@ -25,7 +25,7 @@ secure-aks/
 | 1   | vulnerable app   | Develop Next.js web app with React2Shell-vulnerability | Exploit React2Shell-vulnerability locally | Done     |
 | 2   | local kind       | Create local kind cluster and k8s resources;           | A local kind cluster runs                 | Done     |
 | 3   | local breach     | Exploit the app and retrieve crown jewels              | Crown jewels get retrieves                | Done     |
-| 4   | Detect           | Deploy grafana+loki; set alert; verify attack          | Alert is send to slack                    |          |
+| 4   | Detect           | Deploy grafana+loki; set alert; verify attack          | Alert is send to slack                    | Done     |
 | 5   | Harden cluster   | Harden at cluster level                                | Secure cluster level crown jewel          |          |
 | 6   | Harden container | Harden at pod/container level                          | Secure at pod/container level             |          |
 | 7   | shift left       | create github actions workflow                         | Insecure push get rejected                |          |

