@@ -114,6 +114,7 @@ docker build -f app/Dockerfile.secure -t react2shell:secure app
 
 # runs as non-root
 docker run --rm -d --name react2shell-secure -p 3000:3000 react2shell:secure
+docker run --rm -d --name react2shell-secure -p 3000:3000 simonangelfong/react2shell:secure-fb0da05353d8693ea906c37d1776c4a4b4470df2
 
 # ##############################
 # try exploit
