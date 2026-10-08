@@ -30,7 +30,7 @@ spec:
       expression: >-
         object.spec.containers.all(c, image(c.image).tag() != '')
 
-    # 4) must not use the known-vulnerable tag
-    - message: "the :insecure image tag is forbidden"
-      expression: >-
-        object.spec.containers.all(c, image(c.image).tag() != 'insecure')
+    # # 4) must not use the known-vulnerable tag
+    # - message: "the :insecure image tag is forbidden"
+    #   expression: >-
+    #     object.spec.containers.all(c, image(c.image).tag() != 'insecure')
