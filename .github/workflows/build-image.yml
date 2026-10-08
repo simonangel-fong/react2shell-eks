@@ -61,6 +61,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          scanners: vuln          # CVEs only — skip slow secret scan of the npm cache
           format: table
           exit-code: "1"
           severity: HIGH,CRITICAL

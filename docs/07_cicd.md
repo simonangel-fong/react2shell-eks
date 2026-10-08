@@ -82,11 +82,11 @@ gh secret set DOCKERHUB_USERNAME --body ""
 gh secret set DOCKERHUB_TOKEN --body ""
 
 
-git checkout -b ci/build-image
+git checkout -b secure-app
 git add .github/workflows/build-image.yml docs/07_cicd.md
 git commit -m "ci: build-image workflow (build, test, trivy scan, push on master)"
-git push -u origin ci/build-image
+git push -u origin secure-app
 gh pr create --fill --base master
-gh pr checks --watch        # see build-image run; Trivy should fail on the vulnerable image
+gh pr checks --watch
 
 ```
