@@ -218,8 +218,8 @@ kyverno version
 
 # apply the image policy to the deploy manifests
 kyverno apply argocd/platform/kyverno-image-policy.yaml \
-  --resource argocd/secure-frontend/react2shell-deploy.yaml \
-  --resource argocd/insecure-frontend/react2shell-deploy.yaml
+  --resource argocd/secure-frontend/deploy.yaml \
+  --resource argocd/insecure-frontend/deploy.yaml
 
 # Applying 1 policy rule(s) to 2 resource(s)...
 # pass: 2, fail: 0, warn: 0, error: 0, skip: 0
