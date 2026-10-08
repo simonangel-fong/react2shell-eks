@@ -1,0 +1,24 @@
+# Accepted risk: node-tar CVEs in Next.js's VENDORED copy
+# (node_modules/next/dist/compiled/tar). This is not a resolvable npm
+# dependency, so `npm audit` is clean and `overrides` cannot touch it; only a
+# future `next` release that re-vendors tar will clear it. The compiled tar is
+# used by Next's build/CLI tooling, not reachable from the running server, so
+# the DoS/path-traversal risk does not apply to the runtime workload.
+# Re-review when bumping next.
+CVE-2026-26960
+CVE-2026-29786
+CVE-2026-31802
+CVE-2026-59874
+CVE-2026-73566
+
+# Accepted risk (review 2026-11-08): libssl3/OpenSSL CVEs in the distroless
+# base image. Debian has fixes (e.g. 3.0.19-1~deb12u2) but the distroless
+# nodejs20-debian12 base has not been rebuilt with them yet, and distroless has
+# no package manager to patch manually. Re-pull the base and drop these as soon
+# as an updated layer ships.
+CVE-2026-31789
+CVE-2026-28387
+CVE-2026-28388
+CVE-2026-28389
+CVE-2026-28390
+CVE-2026-45447

@@ -1,5 +1,5 @@
 {
-  "name": "react2shell",
+  "name": "react2shell-secure",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,8 +8,11 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "^15.2.2",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "next": "^15.2.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "overrides": {
+    "postcss": ">=8.5.29"
   }
 }
