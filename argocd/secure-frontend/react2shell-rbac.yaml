@@ -5,3 +5,4 @@ kind: ServiceAccount
 metadata:
   name: react2shell
   namespace: secure-frontend
+automountServiceAccountToken: false

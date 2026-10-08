@@ -181,7 +181,16 @@ helm uninstall kyverno -n kyverno
 
 ```sh
 # confirm
-kubectl get clusterpolicy image-policy
+kubectl get ValidatingPolicy
+# NAME           AGE   READY
+# image-policy   14m   true
 
-kubectl -n insecure-frontend run bad --image=docker.io/simonangelfong/react2shell:insecure
+kubectl -n insecure-frontend run bad --image=docker.io/simonangelfong/react2shell:insecure --dry-run=server
+# Error from server: admission webhook "vpol.validate.kyverno.svc-fail" denied the request: Policy image-policy failed: the :insecure image tag is forbidden
+
+kubectl -n insecure-frontend run bad --image=nginx:latest --dry-run=server
+# Error from server: admission webhook "vpol.validate.kyverno.svc-fail" denied the request: Policy image-policy failed: image must not use the :latest tag
+
+kubectl -n insecure-frontend run ok --image=nginx:1.27 --dry-run=server
+# pod/ok created (server dry run)
 ```
