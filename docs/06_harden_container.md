@@ -71,13 +71,43 @@ python scripts/rce.py http://localhost:8080 "cat /var/run/secrets/kubernetes.io/
   - `capabilities.drop: ["ALL"]`
 
 ```sh
-kubectl -n secure-frontend rollout restart deploy/react2shell
-kubectl -n secure-frontend rollout status deploy/react2shell --timeout=120s
+# RCE:user id
+python scripts/rce.py http://localhost:8080 id
+# executable response:
+# uid=1000(node) gid=1000(node) groups=1000(node)
 
-python scripts/rce.py http://localhost:8080 id            # uid=1000 (non-root)
-python scripts/rce.py http://localhost:8080 "touch /etc/x"  # read-only error (rootfs still RO elsewhere)
+# RCE: read-only fs
+python scripts/rce.py http://localhost:8080 "touch /etc/x"
+# executable response:
+# touch: cannot touch '/etc/x': Read-only file system
 
+# RCE: no priviledge
+python scripts/rce.py http://localhost:8080 "sudo touch /etc/x"
+# executable response:
+# /bin/sh: 1: sudo: not found
+
+# RCE: still get pod tier flag
+python scripts/rce.py http://localhost:8080 "printenv CONTAINER_SECRET"
+# executable response:
+# CoNtAinEr-sEcRet-sECurE
 ```
 
+---
 
 ## PSS
+
+- enforce Pod Security Standards `restricted` via namespace labels.
+
+```sh
+# label is applied
+kubectl get ns secure-frontend --show-labels
+
+# hardened app still runs
+kubectl -n secure-frontend get pods
+
+# a non-conformant pod is REJECTED
+kubectl -n secure-frontend run bad --image=nginx:1.27
+# Error from server (Forbidden): pods "bad" is forbidden: violates PodSecurity
+# "restricted:latest": allowPrivilegeEscalation != false, unrestricted capabilities,
+# runAsNonRoot != true, seccompProfile ...
+```
