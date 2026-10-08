@@ -1,0 +1,39 @@
+# Secure, multi-stage build of react2shell.
+# Fixes vs Dockerfile.insecure:
+#  - patched deps (next 15.2.9) + prod build, not `npm run dev`
+#  - pinned digest-friendly base; no curl/jq/dev tooling in the runtime image
+#  - multi-stage: build deps/cache never reach the final image
+#  - runs as the built-in non-root `node` user
+#  - standalone output -> tiny runtime (only what the server needs)
+
+# ---- deps: install with a clean cache ----
+FROM node:20-slim AS deps
+WORKDIR /app
+COPY react2shell-secure/package.json react2shell-secure/package-lock.json ./
+RUN npm ci && npm cache clean --force
+
+# ---- build: compile the standalone server ----
+FROM node:20-slim AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY react2shell-secure/ .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# ---- runtime: distroless, non-root ----
+# Distroless ships only Node + its libs: no shell, no npm, no perl/apt -> far
+# smaller OS attack surface (removes the base-image perl/tar CVEs). It runs as
+# non-root (uid 1000) by default and has no package manager to exploit.
+FROM gcr.io/distroless/nodejs20-debian12 AS runtime
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000
+# standalone output already contains the trimmed node_modules + server.js
+COPY --from=build --chown=nonroot:nonroot /app/.next/standalone ./
+COPY --from=build --chown=nonroot:nonroot /app/.next/static ./.next/static
+COPY --from=build --chown=nonroot:nonroot /app/public ./public
+USER nonroot
+EXPOSE 3000
+# distroless nodejs image's entrypoint is already `node`
+CMD ["server.js"]

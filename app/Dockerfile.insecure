@@ -7,11 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install the pinned vulnerable dependency tree first (better layer caching).
-COPY react2shell/package.json react2shell/package-lock.json ./
+COPY react2shell-insecure/package.json react2shell-insecure/package-lock.json ./
 RUN npm ci
 
 # App source.
-COPY react2shell/ .
+COPY react2shell-insecure/ .
 
 EXPOSE 3000
 CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]

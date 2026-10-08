@@ -10,6 +10,7 @@
   - [Kyverno](#kyverno)
     - [Install with helm](#install-with-helm)
     - [Argo CD](#argo-cd)
+    - [Kyverno CLI](#kyverno-cli)
 
 ---
 
@@ -193,4 +194,33 @@ kubectl -n insecure-frontend run bad --image=nginx:latest --dry-run=server
 
 kubectl -n insecure-frontend run ok --image=nginx:1.27 --dry-run=server
 # pod/ok created (server dry run)
+```
+
+---
+
+### Kyverno CLI
+
+- shift-left: run the same `ValidatingPolicy` offline against Pod manifests.
+- scan only Pod-bearing files — the CEL CLI errors if CRDs (Argo/Kyverno
+  Applications) are in the resource set.
+
+```sh
+# install WSL — ValidatingPolicy
+curl -LO https://github.com/kyverno/kyverno/releases/download/v1.19.1/kyverno-cli_v1.19.1_linux_x86_64.tar.gz
+tar -xvf kyverno-cli_v1.19.1_linux_x86_64.tar.gz
+sudo cp kyverno /usr/local/bin/
+
+# confirm
+kyverno version
+# Version: 1.19.1
+# Time: 2026-09-10T05:20:21Z
+# Git commit ID: 40ec788d48bb28d83dbf85538e962a59db9d45c6
+
+# apply the image policy to the deploy manifests
+kyverno apply argocd/platform/kyverno-image-policy.yaml \
+  --resource argocd/secure-frontend/react2shell-deploy.yaml \
+  --resource argocd/insecure-frontend/react2shell-deploy.yaml
+
+# Applying 1 policy rule(s) to 2 resource(s)...
+# pass: 2, fail: 0, warn: 0, error: 0, skip: 0
 ```

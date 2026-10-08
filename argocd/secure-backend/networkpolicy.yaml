@@ -6,7 +6,7 @@ metadata:
   name: default-deny-all
   namespace: secure-backend
 spec:
-  podSelector: {} # all pods in prod
+  podSelector: {} # all pods in secure-backend
   policyTypes:
     - Ingress
     - Egress
@@ -18,7 +18,7 @@ metadata:
   name: allow-dns-egress
   namespace: secure-backend
 spec:
-  podSelector: {} # all pods in prod
+  podSelector: {} # all pods in secure-backend
   policyTypes:
     - Egress
   egress:
@@ -32,23 +32,23 @@ spec:
         - protocol: TCP
           port: 53
 ---
-# allow the api only from inside the prod namespace
+# allow the api only from the secure-frontend namespace, on the pod's port
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-nginx-api-from-prod
+  name: allow-api-from-frontend
   namespace: secure-backend
 spec:
   podSelector:
     matchLabels:
-      app: nginx-api
+      app: backend-api
   policyTypes:
     - Ingress
   ingress:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: prod
+              kubernetes.io/metadata.name: secure-frontend
       ports:
         - protocol: TCP
-          port: 80
+          port: 8080

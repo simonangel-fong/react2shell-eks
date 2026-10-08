@@ -8,6 +8,7 @@
   - [SA Token](#sa-token)
   - [Security context](#security-context)
   - [PSS](#pss)
+  - [Static analysis](#static-analysis)
 
 ---
 
@@ -101,13 +102,24 @@ python scripts/rce.py http://localhost:8080 "printenv CONTAINER_SECRET"
 ```sh
 # label is applied
 kubectl get ns secure-frontend --show-labels
+# NAME              STATUS   AGE     LABELS
+# secure-frontend   Active   7h44m   kubernetes.io/metadata.name=secure-frontend,pod-security.kubernetes.io/audit=restricted,pod-security.kubernetes.io/enforce-version=latest,pod-security.kubernetes.io/enforce=restricted,pod-security.kubernetes.io/warn=restricted
 
 # hardened app still runs
 kubectl -n secure-frontend get pods
+# NAME                          READY   STATUS    RESTARTS   AGE
+# react2shell-bc4cc8568-p47rs   1/1     Running   0          29m
 
 # a non-conformant pod is REJECTED
 kubectl -n secure-frontend run bad --image=nginx:1.27
-# Error from server (Forbidden): pods "bad" is forbidden: violates PodSecurity
-# "restricted:latest": allowPrivilegeEscalation != false, unrestricted capabilities,
-# runAsNonRoot != true, seccompProfile ...
+# Error from server (Forbidden): pods "bad" is forbidden: violates PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "bad" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "bad" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "bad" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "bad" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+```
+
+---
+
+## Static analysis
+
+```sh
+# scan config
+trivy config --severity HIGH,CRITICAL --exit-code 1 argocd/secure-backend
 ```

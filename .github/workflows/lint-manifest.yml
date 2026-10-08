@@ -1,0 +1,50 @@
+name: lint-manifest
+
+# Scan k8s manifests for policy violations and misconfig before merge.
+on:
+  pull_request:
+    paths:
+      - "argocd/secure-frontend/**"
+      - "argocd/secure-backend/**"
+      - "argocd/platform/kyverno-image-policy.yaml"
+      - ".github/workflows/lint-manifest.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kyverno:
+    # shift-left the admission image policy: a Pod using a bad image fails here.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: install kyverno cli
+        uses: kyverno/action-install-cli@v0.2.0
+        with:
+          release: v1.19.1 # ValidatingPolicy (policies.kyverno.io/v1) needs >=1.17
+      - name: apply image policy to pod manifests
+        run: |
+          kyverno apply argocd/platform/kyverno-image-policy.yaml \
+            --resource argocd/secure-frontend/react2shell-deploy.yaml
+
+  misconfig:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: trivy config scan (secure-frontend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: argocd/secure-frontend
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+
+      - name: trivy config scan (secure-backend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: argocd/secure-backend
+          exit-code: "1"
+          severity: HIGH,CRITICAL
