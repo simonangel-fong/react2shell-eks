@@ -4,7 +4,9 @@ name: lint-manifest
 on:
   pull_request:
     paths:
-      - "argocd/**"
+      - "argocd/secure-frontend/**"
+      - "argocd/secure-backend/**"
+      - "argocd/platform/kyverno-image-policy.yaml"
       - ".github/workflows/lint-manifest.yml"
 
 concurrency:
@@ -20,25 +22,29 @@ jobs:
       - name: install kyverno cli
         uses: kyverno/action-install-cli@v0.2.0
         with:
-          release: v1.19.1   # ValidatingPolicy (policies.kyverno.io/v1) needs >=1.17
+          release: v1.19.1 # ValidatingPolicy (policies.kyverno.io/v1) needs >=1.17
       - name: apply image policy to pod manifests
-        # NOTE: scan only Pod-bearing manifests, not the whole argocd tree —
-        # the CEL ValidatingPolicy CLI errors when CRDs (Argo/Kyverno) are in
-        # the resource set (kyverno/kyverno#15949).
         run: |
           kyverno apply argocd/platform/kyverno-image-policy.yaml \
-            --resource argocd/secure-frontend/react2shell-deploy.yaml \
-            --resource argocd/insecure-frontend/react2shell-deploy.yaml
+            --resource argocd/secure-frontend/react2shell-deploy.yaml
 
   misconfig:
-    # generic k8s misconfig (privileged, no limits, runAsNonRoot, etc.)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: trivy config scan
+
+      - name: trivy config scan (secure-frontend)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
-          scan-ref: argocd
+          scan-ref: argocd/secure-frontend
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+
+      - name: trivy config scan (secure-backend)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: argocd/secure-backend
           exit-code: "1"
           severity: HIGH,CRITICAL

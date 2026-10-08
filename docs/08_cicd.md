@@ -69,8 +69,9 @@ gh run watch
   - **kyverno** — `kyverno apply` runs the image `ValidatingPolicy` against the
     Pod manifests (shift-left of the admission policy). Scan only Pod-bearing
     files, not the whole tree — the CEL CLI errors when CRDs are in the set.
-  - **misconfig** — `trivy config` scans `argocd/` for generic k8s misconfig
-    (privileged, missing limits, runAsNonRoot, etc.).
+  - **misconfig** — `trivy config` scans `argocd/secure-frontend` and
+    `argocd/secure-backend` for generic k8s misconfig (privileged, missing
+    limits, runAsNonRoot, etc.).
 
 ```sh
 gh workflow run lint-manifest.yml
