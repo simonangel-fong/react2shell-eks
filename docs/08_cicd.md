@@ -8,6 +8,7 @@
   - [Step](#step)
   - [build-image](#build-image)
   - [lint-manifest](#lint-manifest)
+  - [Git branch and GitHub Configuration](#git-branch-and-github-configuration)
 
 ---
 
@@ -31,10 +32,10 @@ Shift security left: block insecure images and manifests in the PR, before merge
 
 ## Step
 
-| #   | Step          | Trigger                                   | Milestone                             |
-| --- | ------------- | ----------------------------------------- | ------------------------------------- |
+| #   | Step          | Trigger                                        | Milestone                             |
+| --- | ------------- | ---------------------------------------------- | ------------------------------------- |
 | 1   | build-image   | pull_request, push `app/react2shell-secure/**` | secure image builds & passes the scan |
-| 2   | lint-manifest | pull_request `argocd/**`                  | vulnerable manifest fails the scan    |
+| 2   | lint-manifest | pull_request `argocd/**`                       | vulnerable manifest fails the scan    |
 
 Common to both:
 
@@ -64,12 +65,12 @@ gh run watch
 
 ## lint-manifest
 
-- scans manifests, not images.
-- jobs/steps:
-  - checkout
-  - **Kyverno CLI** (`kyverno apply`) — fail if a manifest violates the image policy
-  - **Checkov / Trivy config** — generic k8s misconfig (privileged, no limits, etc.)
-  - fail the job on any violation → PR blocked
+- scans manifests, not images. two jobs, each fails the PR on a violation:
+  - **kyverno** — `kyverno apply` runs the image `ValidatingPolicy` against the
+    Pod manifests (shift-left of the admission policy). Scan only Pod-bearing
+    files, not the whole tree — the CEL CLI errors when CRDs are in the set.
+  - **misconfig** — `trivy config` scans `argocd/` for generic k8s misconfig
+    (privileged, missing limits, runAsNonRoot, etc.).
 
 ```sh
 gh workflow run lint-manifest.yml
@@ -78,18 +79,18 @@ gh run watch
 
 ---
 
+## Git branch and GitHub Configuration
+
 ```sh
+# git branch
+git checkout -b insecure-app
+git checkout -b secure-app
+
+# set secret
 gh secret set DOCKERHUB_USERNAME --body ""
 gh secret set DOCKERHUB_TOKEN --body ""
 
-
-git checkout -b secure-app
-git add .github/workflows/build-image.yml docs/07_cicd.md
-git commit -m "ci: workflow test"
-git push -u origin secure-app
+# create pr
 gh pr create --fill --base master
 gh pr checks --watch
-
-trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
-  --ignorefile app/.trivyignore react2shell:secure 2>&1
 ```
