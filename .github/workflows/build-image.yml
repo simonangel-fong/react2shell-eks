@@ -46,6 +46,7 @@ jobs:
 
       # --- image build (Buildx + GHA layer cache), load locally, do NOT push yet ---
       - uses: docker/setup-buildx-action@v4
+
       - name: build image
         uses: docker/build-push-action@v7
         with:
@@ -74,6 +75,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: push image
         if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v7

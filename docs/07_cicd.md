@@ -84,9 +84,10 @@ gh secret set DOCKERHUB_TOKEN --body ""
 
 git checkout -b secure-app
 git add .github/workflows/build-image.yml docs/07_cicd.md
-git commit -m "ci: build-image workflow (build, test, trivy scan, push on master)"
+git commit -m "ci: workflow test"
 git push -u origin secure-app
 gh pr create --fill --base master
 gh pr checks --watch
 
+trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --no-progress simonangelfong/react2shell:insecure 2>&1
 ```
