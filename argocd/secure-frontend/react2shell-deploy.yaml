@@ -1,4 +1,4 @@
-# insecure app: react2shell
+# secure app: react2shell 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,7 +33,7 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
-            readOnlyRootFilesystem: true   # Next.js writes .next/cache -> see writable mount below
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           ports:
@@ -52,16 +52,9 @@ spec:
             limits:
               cpu: 1024m
               memory: 1024Mi
-          # writable paths needed because the root fs is read-only.
-          # app runs `npm run dev` (Next.js dev mode) which rewrites all of
-          # .next/ at runtime, so the whole dir must be writable.
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: next
-              mountPath: /app/.next
       volumes:
         - name: tmp
-          emptyDir: {}
-        - name: next
           emptyDir: {}
