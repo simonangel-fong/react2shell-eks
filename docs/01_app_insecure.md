@@ -16,12 +16,11 @@
   - version: `react@19.0.0` (bundled via `next@15.2.2`)
   - issue: unauthenticated RCE in React Server Components (Flight payload deserialization)
 
-| #   | Steps                    | Step                                                              |
-| --- | ------------------------ | ----------------------------------------------------------------- |
-| 1   | insecure app and exploit | create simple Next.js app with vulnerabilities and exploit        |
-| 1   | secure app and exploit   | create simple Next.js app without vulnerabilities and try exploit |
-| 2   | Dockerize                | Create dokerfile, run and expoit                                  |
-| 3   | push image               | build and push                                                    |
+| #   | Steps                    | Step                                                       |
+| --- | ------------------------ | ---------------------------------------------------------- |
+| 1   | insecure app and exploit | create simple Next.js app with vulnerabilities and exploit |
+| 2   | Dockerize                | Create dokerfile, run and expoit                           |
+| 3   | push image               | build and push                                             |
 
 - reference: https://github.com/msanft/CVE-2025-55182
 

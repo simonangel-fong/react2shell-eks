@@ -15,7 +15,7 @@
 
 Shift security left: block insecure images and manifests in the PR, before merge.
 
-- `build-image` — build, test, scan the container image; push only if clean.
+- `build-image` — build, scan the **secure** app image; push only if clean.
 - `lint-manifest` — scan k8s manifests for misconfig and policy violations.
 
 ---
@@ -31,10 +31,10 @@ Shift security left: block insecure images and manifests in the PR, before merge
 
 ## Step
 
-| #   | Step          | Trigger                     | Milestone                          |
-| --- | ------------- | --------------------------- | ---------------------------------- |
-| 1   | build-image   | pull_request, push `app/**` | vulnerable image fails the scan    |
-| 2   | lint-manifest | pull_request `argocd/**`    | vulnerable manifest fails the scan |
+| #   | Step          | Trigger                                   | Milestone                             |
+| --- | ------------- | ----------------------------------------- | ------------------------------------- |
+| 1   | build-image   | pull_request, push `app/react2shell-secure/**` | secure image builds & passes the scan |
+| 2   | lint-manifest | pull_request `argocd/**`                  | vulnerable manifest fails the scan    |
 
 Common to both:
 
@@ -46,12 +46,13 @@ Common to both:
 
 ## build-image
 
+- builds the **secure** app only (`app/react2shell-secure` + `Dockerfile.secure`).
 - jobs/steps:
   - checkout
-  - build app → unit test
-  - build image (Buildx, gha cache)
-  - **Trivy image scan** — fail on `HIGH,CRITICAL` (`--exit-code 1`)
-  - push to registry only if the scan passes; tag with the commit SHA
+  - build app (`app/react2shell-secure`)
+  - build image (Buildx, gha cache), tag `secure-<sha>`
+  - **Trivy image scan** — fail on `HIGH,CRITICAL`, using `app/.trivyignore`
+  - push to registry only if the scan passes (master only)
 
 ```sh
 # test locally / observe the run
@@ -89,5 +90,6 @@ git push -u origin secure-app
 gh pr create --fill --base master
 gh pr checks --watch
 
-trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --no-progress simonangelfong/react2shell:insecure 2>&1
+trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+  --ignorefile app/.trivyignore react2shell:secure 2>&1
 ```
