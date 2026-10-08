@@ -17,10 +17,25 @@ spec:
         app: react2shell
     spec:
       serviceAccountName: react2shell
+      # pod-level hardening (satisfies PSS "restricted")
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: react2shell
           image: docker.io/simonangelfong/react2shell:insecure
           imagePullPolicy: Always
+          # container-level hardening
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true   # Next.js writes .next/cache -> see writable mount below
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 3000
           env:
@@ -37,3 +52,14 @@ spec:
             limits:
               cpu: 1024m
               memory: 1024Mi
+          # writable paths needed because the root fs is read-only
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: next-cache
+          emptyDir: {}

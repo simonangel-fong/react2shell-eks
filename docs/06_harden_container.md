@@ -39,14 +39,45 @@ kubectl -n secure-frontend rollout restart deploy/react2shell
 
 # directory should be gone
 kubectl -n secure-frontend exec deploy/react2shell -- ls /var/run/secrets/kubernetes.io/serviceaccount/ 2>&1
-# -> No such file or directory
+# ls: cannot access '/var/run/secrets/kubernetes.io/serviceaccount/': No such file or directory
+# command terminated with exit code 2
 
-# via RCE: token read fails
+# RCE: request api
+python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api"
+# executable response:
+# curl: (77) error setting certificate file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+# RCE: get token
 python scripts/rce.py http://localhost:8080 "cat /var/run/secrets/kubernetes.io/serviceaccount/token"
-# -> (empty / no such file)
+# executable response:
+# cat: /var/run/secrets/kubernetes.io/serviceaccount/token: No such file or directory
+```
+
+---
+
+## Security context
+
+- pod:
+  - `runAsNonRoot: true`
+  - `runAsUser: 1000`
+  - `runAsGroup: 1000`
+  - `fsGroup: 1000`
+  - `seccompProfile.type: RuntimeDefault`
+
+- container:
+  - `allowPrivilegeEscalation: false`
+  - `privileged: false`
+  - `readOnlyRootFilesystem: true`
+  - `capabilities.drop: ["ALL"]`
+
+```sh
+kubectl -n secure-frontend rollout restart deploy/react2shell
+kubectl -n secure-frontend rollout status deploy/react2shell --timeout=90s
+# verify non-root via RCE:
+python scripts/rce.py http://localhost:8080 id          # expect uid=1000, not 0
+python scripts/rce.py http://localhost:8080 "touch /x"  # expect read-only error
 
 ```
 
-## Security context
 
 ## PSS
