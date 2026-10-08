@@ -26,7 +26,7 @@ jobs:
       - name: apply image policy to pod manifests
         run: |
           kyverno apply argocd/platform/kyverno-image-policy.yaml \
-            --resource argocd/secure-frontend/react2shell-deploy.yaml
+            --resource argocd/secure-frontend/deploy.yaml
 
   trivy-config:
     runs-on: ubuntu-latest
