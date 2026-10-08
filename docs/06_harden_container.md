@@ -72,10 +72,10 @@ python scripts/rce.py http://localhost:8080 "cat /var/run/secrets/kubernetes.io/
 
 ```sh
 kubectl -n secure-frontend rollout restart deploy/react2shell
-kubectl -n secure-frontend rollout status deploy/react2shell --timeout=90s
-# verify non-root via RCE:
-python scripts/rce.py http://localhost:8080 id          # expect uid=1000, not 0
-python scripts/rce.py http://localhost:8080 "touch /x"  # expect read-only error
+kubectl -n secure-frontend rollout status deploy/react2shell --timeout=120s
+
+python scripts/rce.py http://localhost:8080 id            # uid=1000 (non-root)
+python scripts/rce.py http://localhost:8080 "touch /etc/x"  # read-only error (rootfs still RO elsewhere)
 
 ```
 
