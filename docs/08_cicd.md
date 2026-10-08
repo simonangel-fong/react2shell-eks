@@ -94,6 +94,13 @@ gh secret set DOCKERHUB_TOKEN --body ""
 # create pr
 gh pr create --fill --base master
 gh pr checks --watch
+# All checks were successful
+# 0 cancelled, 0 failing, 2 successful, 0 skipped, and 0 pending checks
+
+#    NAME                                    DESCRIPTION  ELAPSED  URL
+# ✓  lint-manifest/kyverno (pull_request)                 7s       https://github.com/simonangel-fong/react2shell-eks/...
+# ✓  lint-manifest/misconfig (pull_request)               23s      https://github.com/simonangel-fong/react2shell-eks/...
+
 ```
 
 ---

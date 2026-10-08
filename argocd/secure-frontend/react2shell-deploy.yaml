@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: react2shell
-          image: docker.io/simonangelfong/react2shell:secure
+          image: docker.io/simonangelfong/react2shell:secure-fb0da05353d8693ea906c37d1776c4a4b4470df2s
           imagePullPolicy: Always
           # container-level hardening
           securityContext:
