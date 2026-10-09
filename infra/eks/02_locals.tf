@@ -38,5 +38,11 @@ locals {
   argocd_repo_url      = "https://github.com/simonangel-fong/react2shell-eks.git"
   argocd_root_app_path = "argocd"
   argocd_target_rev    = "master"
+
+  # ##############################
+  # irsa (MISCONFIG target — the pod exploited in phase 10)
+  # ##############################
+  irsa_namespace = "insecure-frontend"
+  irsa_sa        = "react2shell"
 }
 

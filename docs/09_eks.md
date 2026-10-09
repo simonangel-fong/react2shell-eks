@@ -10,6 +10,7 @@
   - [Keep Secure (do not regress)](#keep-secure-do-not-regress)
   - [Shortened Attack Chain](#shortened-attack-chain)
   - [EKS](#eks)
+  - [ArgoCD](#argocd)
 
 ---
 
@@ -62,7 +63,7 @@ infra/
 | vpc                | `terraform-aws-modules/vpc` — 2 AZs, public+private    | secure: nodes private |
 | eks                | `terraform-aws-modules/eks` — node group, OIDC enabled | secure: IMDSv2, hop=1 |
 | secret             | Secrets Manager holding a fake RDS credential          | the crown jewel       |
-| irsa _(misconfig)_ | IRSA role for SA `secure-frontend:react2shell`         | **admin `*/*`**       |
+| irsa _(misconfig)_ | IRSA role for SA `insecure-frontend:react2shell`       | **admin `*/*`**       |
 | access             | EKS access entry for the admin identity                | secure                |
 
 - Crown jewel: **Secrets Manager only** (no real RDS yet — same `get-secret-value`
@@ -132,4 +133,20 @@ terraform -chdir=infra/eks refresh
 terraform -chdir=infra/eks output
 
 terraform -chdir=infra/eks destroy -auto-approve
+```
+
+---
+
+## ArgoCD
+
+```sh
+# kubeconfig
+aws eks update-kubeconfig --name react2shell-eks-dev --region ca-central-1
+kubectl get nodes
+
+# argocd synced the app-of-apps
+kubectl get applications -n argocd
+
+# port-forward the insecure app (phase 10 target)
+kubectl port-forward -n insecure-frontend svc/react2shell 3000:3000
 ```
