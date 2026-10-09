@@ -5,6 +5,11 @@ kind: ServiceAccount
 metadata:
   name: react2shell
   namespace: insecure-frontend
+  annotations:
+    # MISCONFIG (phase 9): IRSA binding to the broad admin role.
+    # Role created in infra/eks/09_irsa.tf. ArgoCD owns this SA, so the
+    # annotation must live here (git) — not patched by terraform.
+    eks.amazonaws.com/role-arn: arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa
 ---
 # role: insecure
 apiVersion: rbac.authorization.k8s.io/v1

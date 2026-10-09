@@ -40,3 +40,13 @@ output "kubeconfig_command" {
   description = "Command to update local kubeconfig."
   value       = "aws eks update-kubeconfig --region ${local.aws_region} --name ${module.eks.cluster_name}"
 }
+
+output "rds_secret_arn" {
+  description = "Crown-jewel secret ARN (phase 10 target)."
+  value       = aws_secretsmanager_secret.rds.arn
+}
+
+output "pod_irsa_role_arn" {
+  description = "IRSA role ARN assumed by the insecure-frontend pod."
+  value       = aws_iam_role.pod.arn
+}
