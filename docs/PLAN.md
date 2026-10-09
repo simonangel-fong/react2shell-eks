@@ -7,13 +7,13 @@
 ## Repository layout
 
 ```txt
-secure-aks/
+react2shell-eks/
   app/                react app source code
   argocd/             argocd, app-of-apps, k8s manifests
   kind/               kind cluster for local dev
   infra/
     project/          project-level terraform code
-    aks/              aks terraform code
+    eks/              eks terraform code
   docs/               documentation
   README
 ```
@@ -29,9 +29,9 @@ secure-aks/
 | 5   | Harden cluster   | Harden at cluster level                                | Secure cluster level crown jewel          | Done     |
 | 6   | Harden container | Harden at pod/container level                          | Secure at pod/container level             | Done     |
 | 7   | Harden code      | Harden at code/dockerfile level                        | Secure at code/dockerfile level           | Done     |
-| 8   | shift left       | create github actions workflow                         | Insecure push get rejected                |          |
+| 8   | shift left       | create github actions workflow                         | Insecure push get rejected                | Done     |
 | 9   | AWS cluster      | Create EKS and AWS resources with terraform.           | An EKS cluster runs                       |          |
-| 10   | AWS breach       | Exploit and retrieve cloud crown jewels                | Cloud level crown jewels get retrieves    |          |
+| 10  | AWS breach       | Exploit and retrieve cloud crown jewels                | Cloud level crown jewels get retrieves    |          |
 | 11  | Harden cloud     | Harden at cloud level                                  | Secure at cloud level                     |          |
 | 12  | project video    | short and full videos                                  | Create and publish videos                 |          |
 
