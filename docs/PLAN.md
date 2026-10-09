@@ -31,7 +31,7 @@ react2shell-eks/
 | 7   | Harden code      | Harden at code/dockerfile level                        | Secure at code/dockerfile level           | Done     |
 | 8   | shift left       | create github actions workflow                         | Insecure push get rejected                | Done     |
 | 9   | AWS cluster      | Create EKS and AWS resources with terraform.           | An EKS cluster runs                       | Done     |
-| 10  | AWS breach       | Exploit and retrieve cloud crown jewels                | Cloud level crown jewels get retrieves    |          |
+| 10  | AWS breach       | Exploit and retrieve cloud crown jewels                | Cloud level crown jewels get retrieves    | Done     |
 | 11  | Harden cloud     | Harden at cloud level                                  | Secure at cloud level                     |          |
 | 12  | project video    | short and full videos                                  | Create and publish videos                 |          |
 
