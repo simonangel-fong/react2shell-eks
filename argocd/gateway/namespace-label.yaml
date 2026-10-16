@@ -1,0 +1,12 @@
+# Opt insecure-frontend in to attaching routes to the shared Gateway.
+#
+# The Gateway's allowedRoutes.namespaces.from: Selector matches this
+# label. Without it the HTTPRoute is rejected with NotAllowedByListeners
+# -- the deliberate gate, so only labelled namespaces can publish on
+# the public hostname.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: insecure-frontend
+  labels:
+    gateway-access: "true"

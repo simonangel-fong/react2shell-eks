@@ -1,0 +1,28 @@
+# Routes the public hostname to the insecure-frontend app.
+#
+# Cross-namespace: this route lives with the app, the Gateway lives in
+# argocd. parentRefs reaches across; the Gateway's allowedRoutes
+# selector must match this namespace's gateway-access label.
+#
+# No ReferenceGrant is needed -- that is only required when the
+# *backendRef* crosses namespaces, not the parentRef.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: react2shell
+  namespace: insecure-frontend
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: alb
+      namespace: argocd
+      sectionName: https
+
+  hostnames:
+    - react2shell-insecure.arguswatcher.net
+
+  rules:
+    - backendRefs:
+        - name: react2shell
+          port: 3000

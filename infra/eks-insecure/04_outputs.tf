@@ -58,3 +58,21 @@ output "albc_role_arn" {
   description = "Pod Identity role ARN used by the AWS Load Balancer Controller."
   value       = module.albc_pod_identity.iam_role_arn
 }
+
+# ##############################
+# DNS / TLS exposure
+# ##############################
+output "app_host" {
+  description = "Public hostname (Cloudflare-proxied) for the app."
+  value       = local.app_host
+}
+
+output "acm_certificate_arn" {
+  description = "ACM cert ARN for the Gateway HTTPS listener (Cloudflare Origin CA)."
+  value       = data.aws_acm_certificate.wildcard.arn
+}
+
+output "alb_security_group_id" {
+  description = "ALB security group (Cloudflare-only ingress) for LoadBalancerConfiguration."
+  value       = aws_security_group.alb.id
+}

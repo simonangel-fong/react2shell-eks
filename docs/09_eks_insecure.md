@@ -34,7 +34,7 @@
 
 ## Infra Design
 
-Terraform in a single stack (per `AGENTS.md` layout):
+Terraform in a single stack
 
 ```txt
 infra/
@@ -128,6 +128,7 @@ kubectl port-forward service/argocd-server -n argocd 8443:443
 ### Application with DNS
 
 ```sh
+
 
 ```
 
