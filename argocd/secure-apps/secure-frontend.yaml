@@ -1,4 +1,3 @@
-# Deploys secure app
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -10,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
-    targetRevision: master
+    targetRevision: secure
     path: argocd/secure-frontend
   destination:
     server: https://kubernetes.default.svc

