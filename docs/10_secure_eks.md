@@ -201,6 +201,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 kubectl port-forward service/argocd-server -n argocd 8443:443
 
 kubectl apply -f argocd/insecure-root-app.yaml
+
 ```
 
 ---

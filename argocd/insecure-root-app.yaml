@@ -5,8 +5,7 @@ metadata:
   name: 01-root-app-insecure
   namespace: argocd
   finalizers:
-   - argocd.argoproj.io/resources-finalizer
-
+    - argocd.argoproj.io/resources-finalizer
 spec:
   project: default
   source:
