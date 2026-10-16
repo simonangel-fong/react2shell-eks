@@ -11,9 +11,9 @@ react2shell-eks/
   app/                react app source code
   argocd/             argocd, app-of-apps, k8s manifests
   kind/               kind cluster for local dev
-  infra/              terraform code
-    eks-insecure/     insecure aws resources
-    eks-secure/       secure aws resources
+  infra/
+    project/          project-level terraform code
+    eks/              eks terraform code
   docs/               documentation
   README
 ```
