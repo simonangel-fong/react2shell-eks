@@ -1,9 +1,19 @@
 ---
+# Cluster level crown jewel
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cluster-secret
+  namespace: backend
+type: Opaque
+stringData:
+  password: "cLuSTer-SecReT"
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: backend-api-conf
-  namespace: insecure-backend
+  namespace: backend
 data:
   default.conf: |
     server {
@@ -29,7 +39,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend-api
-  namespace: insecure-backend
+  namespace: backend
 spec:
   replicas: 1
   selector:
@@ -65,7 +75,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: backend-api
-  namespace: insecure-backend
+  namespace: backend
   labels:
     app: backend-api
 spec:

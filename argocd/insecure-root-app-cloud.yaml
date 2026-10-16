@@ -1,19 +1,21 @@
+# App-of-apps root.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: insecure-frontend
+  name: 01-root-app-insecure
   namespace: argocd
   finalizers:
-    - argocd.argoproj.io/resources-finalizer
+   - argocd.argoproj.io/resources-finalizer
+
 spec:
   project: default
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
     targetRevision: insecure
-    path: argocd/insecure-frontend
+    path: argocd/insecure-apps-cloud
   destination:
     server: https://kubernetes.default.svc
-    namespace: insecure-frontend
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true

@@ -1,9 +1,20 @@
+---
+# Container level crown jewel
+apiVersion: v1
+kind: Secret
+metadata:
+  name: container-secret
+  namespace: frontend
+type: Opaque
+stringData:
+  password: "CoNtAinEr-sEcRet-InsECurE"
+---
 # insecure app: react2shell
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: react2shell
-  namespace: insecure-frontend
+  namespace: frontend
   labels:
     app: react2shell
 spec:
@@ -37,3 +48,18 @@ spec:
             limits:
               cpu: 1024m
               memory: 1024Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: react2shell
+  namespace: frontend
+  labels:
+    app: react2shell
+spec:
+  selector:
+    app: react2shell
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

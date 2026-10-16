@@ -4,7 +4,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: react2shell
-  namespace: insecure-frontend
+  namespace: frontend
   annotations:
     # MISCONFIG (phase 9): IRSA binding to the broad admin role.
     # Role created in infra/eks/09_irsa.tf. ArgoCD owns this SA, so the
@@ -16,7 +16,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: react2shell
-  namespace: insecure-frontend
+  namespace: frontend
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/exec"]
@@ -29,7 +29,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: react2shell
-  namespace: insecure-frontend
+  namespace: frontend
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -37,7 +37,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: react2shell
-    namespace: insecure-frontend
+    namespace: frontend
 ---
 # clusterrole: permissive
 apiVersion: rbac.authorization.k8s.io/v1
@@ -63,4 +63,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: react2shell
-    namespace: insecure-frontend
+    namespace: frontend
