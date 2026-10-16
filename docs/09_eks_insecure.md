@@ -6,6 +6,7 @@
   - [Goal](#goal)
   - [Infra Design](#infra-design)
     - [Key Misconfigs](#key-misconfigs)
+    - [Platform Components](#platform-components)
   - [Infra provision](#infra-provision)
     - [EKS](#eks)
     - [ArgoCD](#argocd)
@@ -66,6 +67,19 @@ infra/
 | 1   | Broad IAM policy on the pod's IRSA role  | RCE inherits it → read any secret   | Scope to `GetSecretValue` on the one secret ARN          |
 | 2   | Loose IRSA trust policy (wildcard `sub`) | Lets the pod assume the broad role  | Pin `sub` to the SA + `aud = sts.amazonaws.com`          |
 | 3   | EKS audit logs / CloudTrail off          | Breach is silent (cloud detect gap) | Enable audit + authenticator logs, CloudTrail (optional) |
+
+---
+
+### Platform Components
+
+| #   | Features        | Components       | Handled by |
+| --- | --------------- | ---------------- | ---------- |
+| 1   | cluster ingress | Gateway API      | Terraform  |
+| 2   | load balancer   | ALBC             | Terraform  |
+| 3   | DNS             | ExternalDNS Helm | Argo CD    |
+
+- CF token: manually create
+- Components included in argocd
 
 ---
 

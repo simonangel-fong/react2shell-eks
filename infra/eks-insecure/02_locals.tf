@@ -28,8 +28,8 @@ locals {
   eks_version    = "1.36"
   eks_node_type  = "t3.medium"
   eks_node_min   = 2
-  eks_node_max   = 3
-  eks_node_desed = 2
+  eks_node_max   = 5
+  eks_node_desired = 3
 
   # ##############################
   # Argocd
@@ -39,6 +39,14 @@ locals {
   argocd_repo_url      = "https://github.com/simonangel-fong/react2shell-eks.git"
   argocd_root_app_path = "argocd"
   argocd_target_rev    = "master"
+
+  # ##############################
+  # gateway api / alb exposure
+  # ##############################
+  # Upstream Gateway API, standard channel. LBC v3.x requires v1.6.x.
+  gateway_api_version = "v1.6.3"
+  # AWS LBC release tag; sources the gateway.k8s.aws CRDs.
+  lbc_crd_version = "v3.6.0"
 
   # ##############################
   # irsa (MISCONFIG to enable exploit

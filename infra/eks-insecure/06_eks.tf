@@ -35,7 +35,7 @@ module "eks" {
 
       min_size     = local.eks_node_min
       max_size     = local.eks_node_max
-      desired_size = local.eks_node_desed
+      desired_size = local.eks_node_desired
 
       # Secure posture: IMDSv2 required + hop limit 1.
       # Blocks pods (2 hops) from stealing the node role via IMDS,
