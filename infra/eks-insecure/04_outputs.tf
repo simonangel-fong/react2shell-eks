@@ -50,3 +50,11 @@ output "pod_irsa_role_arn" {
   description = "IRSA role ARN assumed by the insecure-frontend pod."
   value       = aws_iam_role.pod.arn
 }
+
+# ##############################
+# AWS Load Balancer Controller
+# ##############################
+output "albc_role_arn" {
+  description = "Pod Identity role ARN used by the AWS Load Balancer Controller."
+  value       = module.albc_pod_identity.iam_role_arn
+}

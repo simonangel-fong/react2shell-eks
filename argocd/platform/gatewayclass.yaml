@@ -1,0 +1,13 @@
+# GatewayClass for the AWS Load Balancer Controller (ALB / L7).
+#
+# The eks-charts chart installs the controller and its CRDs but does
+# NOT ship a GatewayClass, so it is declared here. Cluster-scoped;
+# a Gateway in any namespace references it by name.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: alb
+spec:
+  # L7 (HTTPRoute, GRPCRoute) -> ALB.
+  # Use gateway.k8s.aws/nlb for L4 (TCPRoute, UDPRoute, TLSRoute).
+  controllerName: gateway.k8s.aws/alb
