@@ -1,70 +1,70 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: platform-falco
-  namespace: argocd
-  labels:
-    tier: platform
-  finalizers:
-    - argocd.argoproj.io/resources-finalizer
-spec:
-  project: default
-  source:
-    repoURL: https://falcosecurity.github.io/charts
-    chart: falco
-    targetRevision: 9.2.0
-    helm:
-      releaseName: falco
-      # Chart-shipped profile: enables the k8saudit plugin alongside the syscall
-      # driver and wires falcoctl to pull the k8saudit ruleset/plugin.
-      valueFiles:
-        - values-syscall-k8saudit.yaml
-      values: |
-        # Override only the driver. The values-syscall-k8saudit.yaml profile
-        # already loads the k8saudit plugin (own webserver on :9765) and the
-        # "k8saudit-webhook" NodePort service (30007 -> 9765) that the apiserver
-        # posts audit events to. Do NOT add a `service:`/webserver block — it
-        # collides with the plugin's 9765 listener ("address already in use").
-        driver:
-          kind: modern_ebpf
-        tty: true
-        falcosidekick:
-          enabled: true
-          webui:
-            enabled: false
-          # Ship every Falco event to Loki (Grafana queries it from there).
-          config:
-            loki:
-              hostport: http://loki.monitoring:3100
-              minimumpriority: notice
-        # Custom rule: cluster-secret access via the K8s API (breach step 4).
-        # The react2shell SA (or anyone using its token) reading Secrets in the
-        # prod namespace is the last-resort signal that triggers hardening.
-        customRules:
-          cluster-secret-rules.yaml: |-
-            - rule: Cluster Secret Accessed via K8s API
-              desc: >
-                A Secret in the prod namespace was read/listed through the
-                Kubernetes API. Fires on the react2shell breach lateral-movement
-                step where the stolen SA token enumerates cross-namespace secrets.
-              condition: >
-                ka.verb in (get, list, watch)
-                and ka.target.resource = secrets
-                and ka.target.namespace = prod
-              output: >
-                Cluster secret accessed in prod ns
-                (verb=%ka.verb user=%ka.user.name
-                resource=%ka.target.resource ns=%ka.target.namespace
-                name=%ka.target.name uri=%ka.uri source=%ka.sourceips)
-              priority: CRITICAL
-              source: k8s_audit
-              tags: [k8s, secrets, react2shell, cluster-jewel]
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: platform-falco
+#   namespace: argocd
+#   labels:
+#     tier: platform
+#   finalizers:
+#     - argocd.argoproj.io/resources-finalizer
+# spec:
+#   project: default
+#   source:
+#     repoURL: https://falcosecurity.github.io/charts
+#     chart: falco
+#     targetRevision: 9.2.0
+#     helm:
+#       releaseName: falco
+#       # Chart-shipped profile: enables the k8saudit plugin alongside the syscall
+#       # driver and wires falcoctl to pull the k8saudit ruleset/plugin.
+#       valueFiles:
+#         - values-syscall-k8saudit.yaml
+#       values: |
+#         # Override only the driver. The values-syscall-k8saudit.yaml profile
+#         # already loads the k8saudit plugin (own webserver on :9765) and the
+#         # "k8saudit-webhook" NodePort service (30007 -> 9765) that the apiserver
+#         # posts audit events to. Do NOT add a `service:`/webserver block — it
+#         # collides with the plugin's 9765 listener ("address already in use").
+#         driver:
+#           kind: modern_ebpf
+#         tty: true
+#         falcosidekick:
+#           enabled: true
+#           webui:
+#             enabled: false
+#           # Ship every Falco event to Loki (Grafana queries it from there).
+#           config:
+#             loki:
+#               hostport: http://loki.monitoring:3100
+#               minimumpriority: notice
+#         # Custom rule: cluster-secret access via the K8s API (breach step 4).
+#         # The react2shell SA (or anyone using its token) reading Secrets in the
+#         # prod namespace is the last-resort signal that triggers hardening.
+#         customRules:
+#           cluster-secret-rules.yaml: |-
+#             - rule: Cluster Secret Accessed via K8s API
+#               desc: >
+#                 A Secret in the prod namespace was read/listed through the
+#                 Kubernetes API. Fires on the react2shell breach lateral-movement
+#                 step where the stolen SA token enumerates cross-namespace secrets.
+#               condition: >
+#                 ka.verb in (get, list, watch)
+#                 and ka.target.resource = secrets
+#                 and ka.target.namespace = prod
+#               output: >
+#                 Cluster secret accessed in prod ns
+#                 (verb=%ka.verb user=%ka.user.name
+#                 resource=%ka.target.resource ns=%ka.target.namespace
+#                 name=%ka.target.name uri=%ka.uri source=%ka.sourceips)
+#               priority: CRITICAL
+#               source: k8s_audit
+#               tags: [k8s, secrets, react2shell, cluster-jewel]
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: monitoring
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+#     syncOptions:
+#       - CreateNamespace=true

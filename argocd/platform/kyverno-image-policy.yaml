@@ -1,36 +1,36 @@
-# Kyverno image policy (CEL)
-apiVersion: policies.kyverno.io/v1
-kind: ValidatingPolicy
-metadata:
-  name: image-policy
-  annotations:
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-spec:
-  validationActions:
-    - Deny
-  matchConstraints:
-    resourceRules:
-      - apiGroups: [""]
-        apiVersions: [v1]
-        operations: [CREATE, UPDATE]
-        resources: [pods]
-  validations:
-    # 1) registry must be docker hub (image() normalizes docker.io -> index.docker.io)
-    - message: "images must come from docker hub (index.docker.io)"
-      expression: >-
-        object.spec.containers.all(c, image(c.image).registry() == 'index.docker.io')
+# # Kyverno image policy (CEL)
+# apiVersion: policies.kyverno.io/v1
+# kind: ValidatingPolicy
+# metadata:
+#   name: image-policy
+#   annotations:
+#     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+# spec:
+#   validationActions:
+#     - Deny
+#   matchConstraints:
+#     resourceRules:
+#       - apiGroups: [""]
+#         apiVersions: [v1]
+#         operations: [CREATE, UPDATE]
+#         resources: [pods]
+#   validations:
+#     # 1) registry must be docker hub (image() normalizes docker.io -> index.docker.io)
+#     - message: "images must come from docker hub (index.docker.io)"
+#       expression: >-
+#         object.spec.containers.all(c, image(c.image).registry() == 'index.docker.io')
 
-    # 2) must not use the :latest tag
-    - message: "image must not use the :latest tag"
-      expression: >-
-        object.spec.containers.all(c, image(c.image).tag() != 'latest')
+#     # 2) must not use the :latest tag
+#     - message: "image must not use the :latest tag"
+#       expression: >-
+#         object.spec.containers.all(c, image(c.image).tag() != 'latest')
 
-    # 3) must be explicitly tagged
-    - message: "image must have an explicit tag"
-      expression: >-
-        object.spec.containers.all(c, image(c.image).tag() != '')
+#     # 3) must be explicitly tagged
+#     - message: "image must have an explicit tag"
+#       expression: >-
+#         object.spec.containers.all(c, image(c.image).tag() != '')
 
-    # # 4) must not use the known-vulnerable tag
-    # - message: "the :insecure image tag is forbidden"
-    #   expression: >-
-    #     object.spec.containers.all(c, image(c.image).tag() != 'insecure')
+#     # # 4) must not use the known-vulnerable tag
+#     # - message: "the :insecure image tag is forbidden"
+#     #   expression: >-
+#     #     object.spec.containers.all(c, image(c.image).tag() != 'insecure')
