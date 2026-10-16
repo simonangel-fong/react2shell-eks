@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
-    targetRevision: master
+    targetRevision: insecure
     path: argocd/insecure-frontend
   destination:
     server: https://kubernetes.default.svc
