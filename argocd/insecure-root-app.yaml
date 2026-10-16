@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: 01-root-app-insecure
+  name: insecure-root-app
   namespace: argocd
   finalizers:
     - argocd.argoproj.io/resources-finalizer
