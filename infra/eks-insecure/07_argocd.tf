@@ -16,40 +16,30 @@ resource "helm_release" "argocd" {
   depends_on = [module.eks]
 }
 
-# Install App-of-apps root.
-resource "kubectl_manifest" "root_app" {
-  yaml_body = yamlencode({
-    apiVersion = "argoproj.io/v1alpha1"
-    kind       = "Application"
-    metadata = {
-      name      = "01-root-app"
-      namespace = local.argocd_namespace
-      finalizers = [
-        "argocd.argoproj.io/resources-finalizer"
-      ]
-    }
-    spec = {
-      project = "default"
-      source = {
-        repoURL        = local.argocd_repo_url
-        targetRevision = local.argocd_target_rev
-        path           = "${local.argocd_root_app_path}/apps"
-      }
-      destination = {
-        server    = "https://kubernetes.default.svc"
-        namespace = local.argocd_namespace
-      }
-      syncPolicy = {
-        automated = {
-          prune    = true
-          selfHeal = true
-        }
-        syncOptions = [
-          "CreateNamespace=true"
-        ]
-      }
-    }
-  })
+# Install App-of-apps root as a tiny local Helm chart.
+resource "helm_release" "root_app" {
+  name      = "root-app"
+  namespace = local.argocd_namespace
+  chart     = "${path.module}/charts/root-app"
+
+  set = [
+    {
+      name  = "namespace"
+      value = local.argocd_namespace
+    },
+    {
+      name  = "repoURL"
+      value = local.argocd_repo_url
+    },
+    {
+      name  = "targetRevision"
+      value = local.argocd_target_rev
+    },
+    {
+      name  = "path"
+      value = "${local.argocd_root_app_path}/apps"
+    },
+  ]
 
   depends_on = [helm_release.argocd]
 }

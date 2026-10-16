@@ -96,14 +96,17 @@ terraform -chdir=infra/eks-insecure destroy -auto-approve
 
 ```sh
 # kubeconfig
-aws eks update-kubeconfig --name react2shell-eks-dev --region ca-central-1
+aws eks update-kubeconfig --name react2shell-eks-insecure --region ca-central-1
 kubectl get nodes
 
 # argocd synced the app-of-apps
 kubectl get applications -n argocd
 
-# port-forward the insecure app
-kubectl port-forward -n insecure-frontend svc/react2shell 3000:3000
+# port-forward the argocd
+# get pwd
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode; echo
+# port forward
+kubectl port-forward service/argocd-server -n argocd 8443:443
 ```
 
 ---

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: root-app
+description: ArgoCD app-of-apps root Application (bootstrap)
+type: application
+version: 0.1.0
+appVersion: "1.0"
