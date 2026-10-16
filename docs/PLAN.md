@@ -11,29 +11,29 @@ react2shell-eks/
   app/                react app source code
   argocd/             argocd, app-of-apps, k8s manifests
   kind/               kind cluster for local dev
-  infra/
-    project/          project-level terraform code
-    eks/              eks terraform code
+  infra/              terraform code
+    eks-insecure/     insecure aws resources
+    eks-secure/       secure aws resources
   docs/               documentation
   README
 ```
 
 ## Phases
 
-| #   | Phase            | Description                                            | Milestone                                 | Progress |
-| --- | ---------------- | ------------------------------------------------------ | ----------------------------------------- | -------- |
-| 1   | vulnerable app   | Develop Next.js web app with React2Shell-vulnerability | Exploit React2Shell-vulnerability locally | Done     |
-| 2   | local kind       | Create local kind cluster and k8s resources;           | A local kind cluster runs                 | Done     |
-| 3   | local breach     | Exploit the app and retrieve crown jewels              | Crown jewels get retrieves                | Done     |
-| 4   | Detect           | Deploy grafana+loki; set alert; verify attack          | Alert is send to slack                    | Done     |
-| 5   | Harden cluster   | Harden at cluster level                                | Secure cluster level crown jewel          | Done     |
-| 6   | Harden container | Harden at pod/container level                          | Secure at pod/container level             | Done     |
-| 7   | Harden code      | Harden at code/dockerfile level                        | Secure at code/dockerfile level           | Done     |
-| 8   | shift left       | create github actions workflow                         | Insecure push get rejected                | Done     |
-| 9   | AWS cluster      | Create EKS and AWS resources with terraform.           | An EKS cluster runs                       | Done     |
-| 10  | AWS breach       | Exploit and retrieve cloud crown jewels                | Cloud level crown jewels get retrieves    | Done     |
-| 11  | Harden cloud     | Harden at cloud level                                  | Secure at cloud level                     |          |
-| 12  | project video    | short and full videos                                  | Create and publish videos                 |          |
+| #   | Phase                | Description                                                | Milestone                                 | Progress |
+| --- | -------------------- | ---------------------------------------------------------- | ----------------------------------------- | -------- |
+| 1   | vulnerable app       | Develop Next.js web app with React2Shell-vulnerability     | Exploit React2Shell-vulnerability locally | Done     |
+| 2   | local kind           | Create local kind cluster and k8s resources;               | A local kind cluster runs                 | Done     |
+| 3   | local breach         | Exploit the app and retrieve crown jewels                  | Crown jewels get retrieves                | Done     |
+| 4   | Detect               | Deploy grafana+loki; set alert; verify attack              | Alert is send to slack                    | Done     |
+| 5   | Harden cluster       | Harden at cluster level                                    | Secure cluster level crown jewel          | Done     |
+| 6   | Harden container     | Harden at pod/container level                              | Secure at pod/container level             | Done     |
+| 7   | Harden code          | Harden at code/dockerfile level                            | Secure at code/dockerfile level           | Done     |
+| 8   | shift left           | create github actions workflow                             | Insecure push get rejected                | Done     |
+| 9   | Insecure EKS & breah | Create insecure AWS resources; retrieve cloud crown jewels | Cloud level crown jewels get retrieves    | Done     |
+| 10  | Secure EKS           | Harden at cloud level                                      | Secure at cloud level                     |          |
+| 11  | Cloud monitoring     | AWS-native detection: CloudTrail + GuardDuty → Slack       | Cloud breach alert is send to slack       |          |
+| 12  | project video        | short and full videos                                      | Create and publish videos                 |          |
 
 **Crown jewels (escalating blast radius)**
 

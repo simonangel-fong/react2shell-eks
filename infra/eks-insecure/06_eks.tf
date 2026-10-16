@@ -12,11 +12,10 @@ module "eks" {
 
   enable_cluster_creator_admin_permissions = true
 
-  # OIDC provider is created by the module → enables IRSA for the pod role.
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets # nodes in private subnets
 
-  # Core add-ons. Pod Identity agent available alongside IRSA.
+  # Core add-ons.
   addons = {
     coredns    = {}
     kube-proxy = {}
@@ -40,7 +39,7 @@ module "eks" {
 
       # Secure posture: IMDSv2 required + hop limit 1.
       # Blocks pods (2 hops) from stealing the node role via IMDS,
-      # forcing the intended IRSA path for the Phase 10 breach.
+      # forcing the intended IRSA path for the intentional breach.
       metadata_options = {
         http_endpoint               = "enabled"
         http_tokens                 = "required"

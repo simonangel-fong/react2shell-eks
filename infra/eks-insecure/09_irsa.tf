@@ -1,9 +1,9 @@
 # irsa.tf
+
 # ##############################
-# MISCONFIG (phase 9) — fixed in phase 11.
+# MISCONFIG: deliberate vulnerability
 # A broad IAM policy (Action:* Resource:*) attached to the pod's IRSA role.
-# RCE inherits it → reads the crown-jewel secret. This whole file is the
-# deliberate vulnerability; phase 11 scopes the policy + trust down.
+# RCE inherits it → reads the crown-jewel secret.
 # ##############################
 
 # Trust policy: the insecure-frontend SA assumes this role via the cluster OIDC.
@@ -31,6 +31,10 @@ data "aws_iam_policy_document" "irsa_trust" {
   }
 }
 
+# ##############################
+# IAM role:
+# SA `eks.amazonaws.com/role-arn` annotation lives in the git manifest (argocd/insecure-frontend/rbac.yaml)
+# ##############################
 resource "aws_iam_role" "pod" {
   name               = "${local.common_name}-pod-irsa"
   assume_role_policy = data.aws_iam_policy_document.irsa_trust.json
@@ -50,8 +54,3 @@ resource "aws_iam_role_policy" "pod_admin" {
   role   = aws_iam_role.pod.id
   policy = data.aws_iam_policy_document.pod_admin.json
 }
-
-# NOTE: the SA `eks.amazonaws.com/role-arn` annotation lives in the git
-# manifest (argocd/insecure-frontend/rbac.yaml), NOT here — ArgoCD owns the SA
-# (selfHeal) and reverts any terraform-patched annotation. The role name is
-# stable (${local.common_name}-pod-irsa), so the ARN is hardcoded there.

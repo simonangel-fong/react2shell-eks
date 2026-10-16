@@ -1,9 +1,6 @@
 # argocd.tf
-# 1. helm_release installs Argo CD (CRDs + controllers).
-# 2. kubectl_manifest seeds the app-of-apps root AFTER the CRDs exist.
-#    alekc/kubectl applies raw YAML with no plan-time schema lookup, so it
-#    works on a freshly-created cluster (unlike kubernetes_manifest).
 
+# install argocd via helm
 resource "helm_release" "argocd" {
   name             = "argocd"
   namespace        = local.argocd_namespace
@@ -19,7 +16,7 @@ resource "helm_release" "argocd" {
   depends_on = [module.eks]
 }
 
-# App-of-apps root. CRD is installed by the release above.
+# Install App-of-apps root.
 resource "kubectl_manifest" "root_app" {
   yaml_body = yamlencode({
     apiVersion = "argoproj.io/v1alpha1"
