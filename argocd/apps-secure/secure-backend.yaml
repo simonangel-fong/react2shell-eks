@@ -1,7 +1,8 @@
+# Deploys the intentionally vulnerable React2Shell app (CVE-2025-55182).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: 03-gateway
+  name: secure-backend
   namespace: argocd
   finalizers:
     - argocd.argoproj.io/resources-finalizer
@@ -10,10 +11,10 @@ spec:
   source:
     repoURL: https://github.com/simonangel-fong/react2shell-eks.git
     targetRevision: master
-    path: argocd/gateway
+    path: argocd/secure-backend
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: secure-backend
   syncPolicy:
     automated:
       prune: true

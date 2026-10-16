@@ -6,11 +6,9 @@
   - [Goal](#goal)
   - [Infra Design](#infra-design)
     - [Key Misconfigs](#key-misconfigs)
-    - [Platform Components](#platform-components)
   - [Infra provision](#infra-provision)
     - [EKS](#eks)
     - [ArgoCD](#argocd)
-    - [Application with DNS](#application-with-dns)
   - [Breach](#breach)
     - [Attack Chain](#attack-chain)
     - [Attack Steps](#attack-steps)
@@ -70,19 +68,6 @@ infra/
 
 ---
 
-### Platform Components
-
-| #   | Features        | Components       | Handled by |
-| --- | --------------- | ---------------- | ---------- |
-| 1   | cluster ingress | Gateway API      | Terraform  |
-| 2   | load balancer   | ALBC             | Terraform  |
-| 3   | DNS             | ExternalDNS Helm | Argo CD    |
-
-- CF token: manually create
-- Components included in argocd
-
----
-
 ## Infra provision
 
 ### EKS
@@ -121,15 +106,6 @@ kubectl get applications -n argocd
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode; echo
 # port forward
 kubectl port-forward service/argocd-server -n argocd 8443:443
-```
-
----
-
-### Application with DNS
-
-```sh
-
-
 ```
 
 ---
