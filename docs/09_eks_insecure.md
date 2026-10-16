@@ -34,7 +34,7 @@
 
 ## Infra Design
 
-Terraform in a single stack (per `AGENTS.md` layout):
+Terraform in a single stack
 
 ```txt
 infra/

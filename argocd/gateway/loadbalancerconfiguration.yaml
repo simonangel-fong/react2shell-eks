@@ -1,0 +1,30 @@
+# ALB configuration for the shared Gateway.
+#
+# securityGroups pins the ALB to the Cloudflare-only SG created in
+# infra/eks-insecure/14_alb_sg.tf. Without it, LBC provisions its own
+# SG open to 0.0.0.0/0 and the ALB becomes reachable directly by its
+# *.elb.amazonaws.com name, bypassing Cloudflare (no WAF, no edge logs).
+#
+# The certificate is a CloudFlare Origin CA cert: edge-trusted only.
+# Correct for proxied (orange-cloud) mode; it would fail in browsers
+# if the record were ever switched to DNS-only.
+apiVersion: gateway.k8s.aws/v1
+kind: LoadBalancerConfiguration
+metadata:
+  name: alb-cloudflare
+  namespace: argocd
+spec:
+  scheme: internet-facing
+
+  # Cloudflare-only ingress. Replaces LBC's default open SG.
+  securityGroups:
+    - sg-0f9be9b2d43bf724e
+
+  # Let LBC manage node/pod SG rules so ALB -> pod traffic is allowed.
+  manageBackendSecurityGroupRules: true
+
+  listenerConfigurations:
+    - protocolPort: HTTPS:443
+      # Origin CA cert (*.arguswatcher.net), ca-central-1, exp 2040.
+      defaultCertificate: arn:aws:acm:ca-central-1:099139718958:certificate/df01d434-c17a-4bd3-b394-c07ca24c78ac
+      sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06

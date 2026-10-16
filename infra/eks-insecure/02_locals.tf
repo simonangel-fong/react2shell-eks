@@ -56,6 +56,17 @@ locals {
   albc_chart_version   = "3.6.0"
 
   # ##############################
+  # dns / tls exposure
+  # ##############################
+  # Public hostname, proxied through Cloudflare.
+  app_host = "react2shell-insecure.arguswatcher.net"
+  # Cloudflare zone that hosts app_host.
+  dns_zone = "arguswatcher.net"
+  # Wildcard cert covering app_host, in the ALB's region.
+  # CloudFlare Origin CA cert: edge-trusted only, proxied mode required.
+  acm_domain = "*.arguswatcher.net"
+
+  # ##############################
   # irsa (MISCONFIG to enable exploit
   # ##############################
   irsa_namespace = "insecure-frontend"
