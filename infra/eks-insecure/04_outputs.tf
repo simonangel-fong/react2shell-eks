@@ -41,6 +41,12 @@ output "kubeconfig_command" {
   value       = "aws eks update-kubeconfig --region ${local.aws_region} --name ${module.eks.cluster_name}"
 }
 
+# Monitoring
+output "cluster_log_group" {
+  description = "CloudWatch log group holding the control plane (audit) logs."
+  value       = module.eks.cloudwatch_log_group_name
+}
+
 output "rds_secret_arn" {
   description = "Crown-jewel secret ARN (phase 10 target)."
   value       = aws_secretsmanager_secret.rds.arn

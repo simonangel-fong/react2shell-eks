@@ -7,13 +7,20 @@ module "eks" {
   name               = local.eks_name
   kubernetes_version = local.eks_version
 
-  endpoint_public_access  = true
-  endpoint_private_access = true
+
 
   enable_cluster_creator_admin_permissions = true
 
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets # nodes in private subnets
+  # network
+  vpc_id                  = module.vpc.vpc_id
+  subnet_ids              = module.vpc.private_subnets # nodes in private subnets
+  endpoint_public_access  = true
+  endpoint_private_access = true
+
+  # Control plane logging 
+  enabled_log_types                      = local.eks_log_types
+  create_cloudwatch_log_group            = true
+  cloudwatch_log_group_retention_in_days = local.eks_log_retention_days
 
   # Core add-ons.
   addons = {
@@ -21,6 +28,13 @@ module "eks" {
     kube-proxy = {}
     vpc-cni = {
       before_compute = true
+      configuration_values = jsonencode({
+        enableNetworkPolicy = "true" # enable netpol
+        nodeAgent = {
+          enablePolicyEventLogs = "true" # enabel netpol logging; Costs ~1 extra vCPU per node for the aws-network-policy-agent.
+          enableCloudWatchLogs  = "true"
+        }
+      })
     }
     eks-pod-identity-agent = {
       before_compute = true

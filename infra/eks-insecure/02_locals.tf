@@ -30,6 +30,9 @@ locals {
   eks_node_min     = 2
   eks_node_max     = 5
   eks_node_desired = 3
+  # control plane logging
+  eks_log_types          = ["audit", "authenticator"]
+  eks_log_retention_days = 7
 
   # ##############################
   # Argocd
@@ -38,7 +41,7 @@ locals {
   argocd_chart_version = "10.10.0"
 
   # ##############################
-  # irsa (MISCONFIG to enable exploit
+  # irsa (MISCONFIG to enable exploit)
   # ##############################
   irsa_namespace = "insecure-frontend"
   irsa_sa        = "react2shell"
