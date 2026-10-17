@@ -9,13 +9,8 @@
     - [Netpol log](#netpol-log)
     - [CloudTrail](#cloudtrail)
   - [Detect](#detect)
-    - [GuardDuty](#guardduty)
-  - [Cloud Monitoring](#cloud-monitoring)
-  - [Step](#step)
-  - [GuardDuty](#guardduty-1)
-  - [Alert to Slack](#alert-to-slack)
-  - [Auto-response](#auto-response)
-  - [Trace the breach](#trace-the-breach)
+    - [GuardDuty - Detection Simulation](#guardduty---detection-simulation)
+  - [Alert](#alert)
 
 ---
 
@@ -33,7 +28,7 @@
                                    │
  detect       GuardDuty  ◀─────────┘   runtime (eBPF) + audit anomaly
                                    │
- alert        EventBridge ─▶ SNS ─▶ Slack ─▶ Lambda (auto-response)
+ alert        EventBridge ─▶ SNS ─▶ email
 ```
 
 ---
@@ -85,7 +80,6 @@ python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 'APISERVER=https
     #   "type": "Opaque"
     # }
 
-
 # query: who read secrets
 QID=$(aws logs start-query \
   --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
@@ -98,7 +92,7 @@ QID=$(aws logs start-query \
   --query queryId --output text)
 
 # poll until "status": "Complete"
-aws logs get-query-results --query-id $QID > log.txt
+aws logs get-query-results --query-id $QID
 ```
 
 ---
@@ -227,11 +221,9 @@ fields @timestamp
 
 ### CloudTrail
 
-- tf: `infra/eks-insecure/16_cloudtrail.tf` - multi-region trail to an S3 bucket.
-- The whole cloud chain - `AssumeRoleWithWebIdentity`, `ListSecrets`,
-  `GetSecretValue` - is **management events** (the read-type ones), captured by
-  any trail that logs management events. No data event selector: Secrets Manager
-  is not a supported CloudTrail data-event resource type.
+- `CloudTrail`:
+  - AWS service that tracks and audits user activity and API calls for security and compliance
+  - "Who did what, when, and from"
 
 ---
 
@@ -257,25 +249,25 @@ aws cloudtrail lookup-events \
 # |  2026-10-17T15:59:09-04:00|  system:serviceaccount:react:react2shell                                                         |
 # |  2026-10-17T15:51:35-04:00|  system:serviceaccount:react:react2shell                                                         |
 # |  2026-10-17T15:50:20-04:00|  system:serviceaccount:react:react2shell                                                         |
-# |  2026-10-17T15:48:02-04:00|  system:serviceaccount:react:react2shell                               
+# |  2026-10-17T15:48:02-04:00|  system:serviceaccount:react:react2shell                                                         |
 
 
 # the crown-jewel read - also a management event, so lookup-events sees it
 aws cloudtrail lookup-events \
   --lookup-attributes AttributeKey=EventName,AttributeValue=GetSecretValue \
-  --query 'Events[].{time:EventTime,user:Username,secret:Resources[0].ResourceName}' \
-  --output table
+  --query 'Events[].{time:EventTime,user:Username,secret:Resources[0].ResourceName}'
 
-# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# |                                                                                                LookupEvents                                                                                                |
-# +------------------------------------------------------------------------------------------------------------+----------------------------+------------------------------------------------------------------+
-# |                                                   secret                                                   |           time             |                              user                                |
-# +------------------------------------------------------------------------------------------------------------+----------------------------+------------------------------------------------------------------+
-# |  react2shell-eks-insecure-rds-credential                                                                   |  2026-10-17T15:59:54-04:00 |  react2shell    
+# [
+#     {
+#         "time": "2026-10-17T16:16:04-04:00",
+#         "user": "react2shell",
+#         "secret": "react2shell-eks-insecure-rds-credential"
+#     },
 ```
 
-- Query in `CloudWatch` (the trail also streams to a log group, so the whole
-  chain is queryable with the same Logs Insights syntax as the other logs)
+---
+
+- Query in `CloudWatch`
 
 ```sql
 SOURCE "/aws/cloudtrail/react2shell-eks-insecure" START=-3600s END=0s |
@@ -285,11 +277,10 @@ fields eventTime, userIdentity.arn, eventName, requestParameters.secretId
 | limit 50
 
 /*
-	
 eventTime             userIdentity.arn                                                                      eventName               requestParameters.secretId
-2026-10-17T20:19:16Z                                                                                        AssumeRoleWithWebIdentity	
-2026-10-17T20:19:16Z  arn:aws:sts::099139718958:assumed-role/react2shell-eks-insecure-pod-irsa/react2shell  ListSecrets	
-2026-10-17T20:16:04Z		                                                                                    AssumeRoleWithWebIdentity	
+2026-10-17T20:19:16Z                                                                                        AssumeRoleWithWebIdentity
+2026-10-17T20:19:16Z  arn:aws:sts::099139718958:assumed-role/react2shell-eks-insecure-pod-irsa/react2shell  ListSecrets
+2026-10-17T20:16:04Z		                                                                                    AssumeRoleWithWebIdentity
 2026-10-17T20:16:04Z  arn:aws:sts::099139718958:assumed-role/react2shell-eks-insecure-pod-irsa/react2shell  sGetSecretValue	react2shell-eks-insecure-rds-credential
 */
 ```
@@ -298,168 +289,68 @@ eventTime             userIdentity.arn                                          
 
 ## Detect
 
-### GuardDuty
+### GuardDuty - Detection Simulation
 
-- tf: `infra/eks-insecure/17_guardduty.tf`
-  - `aws_guardduty_detector`
-  - `aws_guardduty_detector_feature`:
-    - `EKS_AUDIT_LOGS` - cluster plane, reads the EKS audit log
-    - `RUNTIME_MONITORING` + `EKS_ADDON_MANAGEMENT` - container plane, installs
-      the managed eBPF agent (the Falco equivalent)
+- `GuardDuty`
+  - AWS's threat detection service.
+  - reads the logs and the runtime agent and raises a finding when it detects an attack — no rules to write.
 
-Expected findings - all generic, none naming our app or secret:
+- for EKS
+  - `EKS_AUDIT_LOGS` - cluster plane, reads the EKS audit log
+  - `RUNTIME_MONITORING` + `EKS_ADDON_MANAGEMENT` - container plane, installs the managed eBPF agent (the Falco equivalent)
 
-| Layer     | Finding                                                         | Severity |
-| --------- | --------------------------------------------------------------- | -------- |
-| Container | `Execution:Runtime/ReverseShell`                                | High     |
-| Cluster   | `CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed` | Medium   |
-| Cloud     | `CredentialAccess:IAMUser/AnomalousBehavior`                    | Medium   |
-| All       | `AttackSequence:EKS/CompromisedCluster`                         | Critical |
-
-> `AnomalousBehavior.*` need ~7-14 days of baseline and may not fire on a fresh
-> cluster. Runtime findings are signature-based and fire immediately; use
-> `create-sample-findings` to prove the pipeline meanwhile.
+- Simulation:
+  - Real detection needs ~7-14 days of baseline
+  - the following acts as a simulation:
+    - create a sample finding to simulate the abnormal detection.
 
 ---
 
 - confirm
 
 ```sh
+# confirm runtime agent landed
+kubectl -n amazon-guardduty get pods
+# NAME                        READY   STATUS    RESTARTS      AGE
+# aws-guardduty-agent-2wvm6   1/1     Running   6 (11m ago)   16m
+# aws-guardduty-agent-9n5kx   1/1     Running   6 (12m ago)   16m
+# aws-guardduty-agent-d8wsf   1/1     Running   6 (11m ago)   16m
+
+# get detector id
 DETECTOR=$(terraform -chdir=infra/eks-insecure output -raw guardduty_detector_id)
 
-# features enabled?
-aws guardduty get-detector --detector-id $DETECTOR \
-  --query 'features[].{name:name,status:status}' --output table
-
-# runtime agent landed?
-kubectl -n amazon-guardduty get pods
-# NAME                        READY   STATUS
-# aws-guardduty-agent-xxxxx   1/1     Running
-
-# replay the exploit (node /tmp/s.js ...), then list findings
-IDS=$(aws guardduty list-findings --detector-id $DETECTOR \
-  --finding-criteria '{"Criterion":{"severity":{"Gte":4}}}' \
-  --query 'FindingIds' --output text)
-aws guardduty get-findings --detector-id $DETECTOR --finding-ids $IDS \
-  --query 'Findings[].{type:Type,sev:Severity,resource:Resource.ResourceType}' \
-  --output table
-
-# no baseline yet? prove the pipeline with a sample finding
+# create a sample findings for secret Accessed
 aws guardduty create-sample-findings --detector-id $DETECTOR \
   --finding-types CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed
+
+# confirm sample finding created
+IDS=$(aws guardduty list-findings --detector-id $DETECTOR --query 'FindingIds' --output text)
+aws guardduty get-findings --detector-id $DETECTOR --finding-ids $IDS \
+  --query 'Findings[].{type:Type,sev:Severity}' --output table
+
+# [
+#     {
+#         "type": "CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed",
+#         "sev": 5.0
+#     }
+# ]
 ```
 
 ---
 
+## Alert
 
-## Cloud Monitoring
+- `GuardDuty` finding severity >= 4 -> `EventBridge` -> `SNS` emails
 
-AWS-native monitoring — the managed equivalent of the Falco + Loki + Grafana
-stack used on kind.
-
-```txt
- log          EKS audit log  ─┐
-              netpol log     ─┼─▶ CloudWatch
-              CloudTrail     ─┴─▶ S3
-                                   │
- detect       GuardDuty  ◀─────────┘   runtime (eBPF) + audit anomaly
-                                   │
- alert        EventBridge ─▶ SNS ─▶ Slack ─▶ Lambda (auto-response)
-```
-
-- Enable the logs before the detector — GuardDuty EKS findings are derived from
-  the EKS audit log.
-- Netpol logs, not VPC Flow Logs, for pod↔pod: Flow Logs carry no pod identity
-  and miss same-node traffic.
-
----
-
-## Step
-
-Enable one source, replay the breach, confirm it shows up.
-
-| #   | Step             | Replay                    | Milestone                                 |
-| --- | ---------------- | ------------------------- | ----------------------------------------- |
-| 1   | EKS audit log    | SA reads `backend` secret | secret access found in Logs Insights      |
-| 2   | Netpol log       | react pod → backend api   | frontend→backend verdict logged           |
-| 3   | CloudTrail       | pod assumes IRSA role     | `AssumeRoleWithWebIdentity` in trail      |
-| 4   | GuardDuty        | re-run the exploit        | runtime + audit findings raised           |
-| 5   | Alert to Slack   | sample finding            | Slack shows critical alert                |
-| 6   | Auto-response    | re-run the exploit        | role session revoked, pod isolated        |
-| 7   | Trace the breach | full exploit chain        | compromised layer and vulnerability named |
-
----
-
-
-## GuardDuty
-
-- `infra/eks-secure/16_guardduty.tf`
-- `aws_guardduty_detector` + `aws_guardduty_detector_feature`:
-  - `EKS_AUDIT_LOGS`
-  - `RUNTIME_MONITORING` with `EKS_ADDON_MANAGEMENT`
-    (mutually exclusive with the older `EKS_RUNTIME_MONITORING`)
+- Simulation
 
 ```sh
-# confirm features + agent
-aws guardduty get-detector --detector-id <id> --query 'features[].{n:name,s:status}'
-kubectl -n amazon-guardduty get pods
-
-# replay the exploit, then list findings
-aws guardduty list-findings --detector-id <id> \
-  --finding-criteria '{"Criterion":{"severity":{"Gte":4}}}'
-```
-
-Expected findings — generic, no rule naming our app or secret:
-
-| Layer     | Finding                                                         | Severity |
-| --------- | --------------------------------------------------------------- | -------- |
-| Container | `Execution:Runtime/ReverseShell`                                | High     |
-| Cluster   | `CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed` | Medium   |
-| Cloud     | `CredentialAccess:IAMUser/AnomalousBehavior`                    | Medium   |
-| All       | `AttackSequence:EKS/CompromisedCluster`                         | Critical |
-
-- `AnomalousBehavior.*` needs ~7–14 days of baseline — may not fire on a new
-  cluster. Runtime findings are signature-based and fire immediately.
-
----
-
-## Alert to Slack
-
-- `infra/eks-secure/17_alerting.tf`
-- EventBridge rule: `source = aws.guardduty`, `severity >= 7` → SNS → Slack
-- route on severity, not finding type
-
-```sh
-# test the path without a breach
-aws guardduty create-sample-findings --detector-id <id> \
+# create a finding to tigger alert
+aws guardduty create-sample-findings --detector-id $DETECTOR \
   --finding-types CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed
+
+# email arrives:
+# [GuardDuty 5] CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed (ca-central-1)
 ```
 
-- Demo fallback: if GuardDuty has no baseline yet, add an EventBridge rule on
-  `AssumeRoleWithWebIdentity` / `ListSecrets` to guarantee an alert.
-  Use EventBridge, not a CloudWatch metric filter — CloudTrail → CloudWatch
-  delivery lags 5–15 min.
-
 ---
-
-## Auto-response
-
-- Lambda on the same EventBridge rule:
-  - revoke the IRSA role sessions (`AWSRevokeOlderSessions`)
-  - apply a deny-all NetworkPolicy to the pod label
-- Secrets Manager rotation caps the lifetime of a stolen credential.
-
----
-
-## Trace the breach
-
-Replay the full chain; each signal names the layer that failed.
-
-| Signal                                        | Layer     | Vulnerability                 |
-| --------------------------------------------- | --------- | ----------------------------- |
-| image scan: CVE-2025-55182                    | Code      | unpatched dependency          |
-| `Execution:Runtime/ReverseShell`              | Container | no PSS, root, writable rootfs |
-| netpol log: `ACCEPT` frontend→backend         | Cluster   | backend not isolated          |
-| audit: `verb=get resource=secrets ns=backend` | Cluster   | RBAC grants SA secret access  |
-| CloudTrail: `AssumeRoleWithWebIdentity`       | Cloud     | IRSA role bound to a web pod  |
-| CloudTrail: `GetSecretValue`                  | Cloud     | IAM policy `Action:*`         |

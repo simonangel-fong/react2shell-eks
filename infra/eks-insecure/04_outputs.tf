@@ -67,6 +67,11 @@ output "guardduty_detector_id" {
   value       = aws_guardduty_detector.main.id
 }
 
+output "alert_topic_arn" {
+  description = "SNS topic that GuardDuty findings publish to."
+  value       = aws_sns_topic.alert.arn
+}
+
 output "rds_secret_arn" {
   description = "Crown-jewel secret ARN (phase 10 target)."
   value       = aws_secretsmanager_secret.rds.arn
