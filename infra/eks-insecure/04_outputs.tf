@@ -62,6 +62,11 @@ output "cloudtrail_log_group" {
   value       = aws_cloudwatch_log_group.trail.name
 }
 
+output "guardduty_detector_id" {
+  description = "GuardDuty detector id (for list-findings / get-findings)."
+  value       = aws_guardduty_detector.main.id
+}
+
 output "rds_secret_arn" {
   description = "Crown-jewel secret ARN (phase 10 target)."
   value       = aws_secretsmanager_secret.rds.arn

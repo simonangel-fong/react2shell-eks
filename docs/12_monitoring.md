@@ -8,12 +8,11 @@
     - [EKS audit log](#eks-audit-log)
     - [Netpol log](#netpol-log)
     - [CloudTrail](#cloudtrail)
+  - [Detect](#detect)
+    - [GuardDuty](#guardduty)
   - [Cloud Monitoring](#cloud-monitoring)
   - [Step](#step)
-  - [EKS audit log](#eks-audit-log-1)
-  - [Netpol log](#netpol-log-1)
-  - [CloudTrail](#cloudtrail-1)
-  - [GuardDuty](#guardduty)
+  - [GuardDuty](#guardduty-1)
   - [Alert to Slack](#alert-to-slack)
   - [Auto-response](#auto-response)
   - [Trace the breach](#trace-the-breach)
@@ -286,14 +285,69 @@ fields eventTime, userIdentity.arn, eventName, requestParameters.secretId
 | limit 50
 
 /*
-eventTime              eventName                   secretId
-...GetSecretValue       react2shell-eks-insecure-rds-credential
-...ListSecrets
-...AssumeRoleWithWebIdentity
+	
+eventTime             userIdentity.arn                                                                      eventName               requestParameters.secretId
+2026-10-17T20:19:16Z                                                                                        AssumeRoleWithWebIdentity	
+2026-10-17T20:19:16Z  arn:aws:sts::099139718958:assumed-role/react2shell-eks-insecure-pod-irsa/react2shell  ListSecrets	
+2026-10-17T20:16:04Z		                                                                                    AssumeRoleWithWebIdentity	
+2026-10-17T20:16:04Z  arn:aws:sts::099139718958:assumed-role/react2shell-eks-insecure-pod-irsa/react2shell  sGetSecretValue	react2shell-eks-insecure-rds-credential
 */
 ```
 
+---
 
+## Detect
+
+### GuardDuty
+
+- tf: `infra/eks-insecure/17_guardduty.tf`
+  - `aws_guardduty_detector`
+  - `aws_guardduty_detector_feature`:
+    - `EKS_AUDIT_LOGS` - cluster plane, reads the EKS audit log
+    - `RUNTIME_MONITORING` + `EKS_ADDON_MANAGEMENT` - container plane, installs
+      the managed eBPF agent (the Falco equivalent)
+
+Expected findings - all generic, none naming our app or secret:
+
+| Layer     | Finding                                                         | Severity |
+| --------- | --------------------------------------------------------------- | -------- |
+| Container | `Execution:Runtime/ReverseShell`                                | High     |
+| Cluster   | `CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed` | Medium   |
+| Cloud     | `CredentialAccess:IAMUser/AnomalousBehavior`                    | Medium   |
+| All       | `AttackSequence:EKS/CompromisedCluster`                         | Critical |
+
+> `AnomalousBehavior.*` need ~7-14 days of baseline and may not fire on a fresh
+> cluster. Runtime findings are signature-based and fire immediately; use
+> `create-sample-findings` to prove the pipeline meanwhile.
+
+---
+
+- confirm
+
+```sh
+DETECTOR=$(terraform -chdir=infra/eks-insecure output -raw guardduty_detector_id)
+
+# features enabled?
+aws guardduty get-detector --detector-id $DETECTOR \
+  --query 'features[].{name:name,status:status}' --output table
+
+# runtime agent landed?
+kubectl -n amazon-guardduty get pods
+# NAME                        READY   STATUS
+# aws-guardduty-agent-xxxxx   1/1     Running
+
+# replay the exploit (node /tmp/s.js ...), then list findings
+IDS=$(aws guardduty list-findings --detector-id $DETECTOR \
+  --finding-criteria '{"Criterion":{"severity":{"Gte":4}}}' \
+  --query 'FindingIds' --output text)
+aws guardduty get-findings --detector-id $DETECTOR --finding-ids $IDS \
+  --query 'Findings[].{type:Type,sev:Severity,resource:Resource.ResourceType}' \
+  --output table
+
+# no baseline yet? prove the pipeline with a sample finding
+aws guardduty create-sample-findings --detector-id $DETECTOR \
+  --finding-types CredentialAccess:Kubernetes/AnomalousBehavior.SecretsAccessed
+```
 
 ---
 
@@ -336,81 +390,6 @@ Enable one source, replay the breach, confirm it shows up.
 
 ---
 
-## EKS audit log
-
-- `infra/eks-insecure/11_eks.tf`: `enabled_log_types = ["audit", "authenticator"]`
-- log group `/aws/eks/<cluster>/cluster`, stream `kube-apiserver-audit-*`
-
-```sh
-# confirm enabled
-aws eks describe-cluster --name react2shell-eks-insecure \
-  --query 'cluster.logging.clusterLogging[?enabled==`true`].types'
-# [["audit","authenticator"]]
-
-# replay: SA reads the cluster secret
-python scripts/rce.py http://localhost:3000 "..."
-```
-
-Logs Insights is async: `start-query` returns an id, `get-query-results` reads
-it. Both `--start-time` and `--end-time` are required (epoch seconds).
-
-```sh
-# query: who read secrets
-QID=$(aws logs start-query \
-  --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
-  --start-time $(date -d '1 hour ago' +%s) \
-  --end-time $(date +%s) \
-  --query-string 'fields @timestamp, user.username, verb, objectRef.namespace, objectRef.name, sourceIPs.0
-    | filter @logStream like /kube-apiserver-audit/
-    | filter objectRef.resource = "secrets" and verb in ["get","list"]
-    | sort @timestamp desc' \
-  --query queryId --output text)
-
-# poll until status is Complete
-aws logs get-query-results --query-id $QID
-```
-
----
-
-## Netpol log
-
-- VPC CNI addon config: `enablePolicyEventLogs` + `enableCloudWatchLogs`
-- needs `logs:CreateLogStream`/`PutLogEvents` on the CNI role; +1 vCPU per node
-- node file `/var/log/aws-routed-eni/network-policy-agent.log`
-
-```sh
-# replay: frontend reaches the backend api
-python scripts/rce.py http://localhost:3000 "curl -sS -m 5 http://backend-api.backend/api/v1/users"
-
-# query: verdict on the flow
-aws logs start-query \
-  --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
-  --query-string 'fields @timestamp, `Src IP`, `Dest IP`, `Dest Port`, Verdict
-    | filter Verdict = "DENY"'
-```
-
-- `ACCEPT` on frontend→backend = backend not isolated (missing NetworkPolicy).
-
----
-
-## CloudTrail
-
-- `infra/eks-insecure/16_cloudtrail.tf`: multi-region trail to S3
-- `GetSecretValue` / `ListSecrets` are management events (read-type); a trail
-  logging management events captures them. Secrets Manager is not a supported
-  CloudTrail data-event resource type, so no data event selector.
-
-```sh
-# replay: pod assumes the IRSA role and reads the secret
-python scripts/rce.py http://localhost:3000 "aws secretsmanager get-secret-value --secret-id ..."
-
-# confirm
-aws cloudtrail lookup-events \
-  --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity \
-  --query 'Events[].{time:EventTime,user:Username}'
-```
-
----
 
 ## GuardDuty
 
