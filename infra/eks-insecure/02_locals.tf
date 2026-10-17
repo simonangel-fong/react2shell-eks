@@ -43,7 +43,7 @@ locals {
   # ##############################
   # irsa (MISCONFIG to enable exploit)
   # ##############################
-  irsa_namespace = "insecure-frontend"
+  irsa_namespace = "react"
   irsa_sa        = "react2shell"
 }
 

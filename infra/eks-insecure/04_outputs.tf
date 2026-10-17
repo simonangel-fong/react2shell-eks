@@ -47,6 +47,21 @@ output "cluster_log_group" {
   value       = module.eks.cloudwatch_log_group_name
 }
 
+output "cloudtrail_name" {
+  description = "CloudTrail trail recording the AWS API plane."
+  value       = aws_cloudtrail.main.name
+}
+
+output "cloudtrail_bucket" {
+  description = "S3 bucket holding the CloudTrail logs."
+  value       = aws_s3_bucket.trail.bucket
+}
+
+output "cloudtrail_log_group" {
+  description = "CloudWatch log group for CloudTrail (Logs Insights queries)."
+  value       = aws_cloudwatch_log_group.trail.name
+}
+
 output "rds_secret_arn" {
   description = "Crown-jewel secret ARN (phase 10 target)."
   value       = aws_secretsmanager_secret.rds.arn

