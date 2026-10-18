@@ -66,5 +66,5 @@ spec:
     app: react2shell
   ports:
     - name: http
-      port: 80
+      port: 3000
       targetPort: 3000

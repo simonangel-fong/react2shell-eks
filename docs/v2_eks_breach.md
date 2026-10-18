@@ -55,7 +55,7 @@ aws eks update-kubeconfig --region ca-central-1 --name react2shell-eks-insecure
 # deploy apps
 kubectl apply -f argocd/insecure-root-app.yaml
 # port forward
-kubectl port-forward service/react2shell -n react 3000:3000
+kubectl port-forward service/react2shell -n react 80:80
 
 ```
 
