@@ -1,25 +1,14 @@
 # cloudtrail.tf
 
-# ##############################
-# CloudTrail (monitoring phase) - the AWS API plane system of record.
-# Records the cloud half of the breach that is invisible inside k8s:
-#   AssumeRoleWithWebIdentity -> GetCallerIdentity -> ListSecrets -> GetSecretValue
-#
-# All of these - including GetSecretValue - are MANAGEMENT events (the read-type
-# ones), captured by any trail that logs management events (the default).
-# Secrets Manager is not a supported CloudTrail data-event resource type, so no
-# data event selector is used here.
-# ##############################
-
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 # ##############################
-# S3 bucket for the trail
+# S3 bucket: CloudTrail
 # ##############################
 resource "aws_s3_bucket" "trail" {
   bucket        = "${local.common_name}-cloudtrail-${data.aws_caller_identity.current.account_id}"
-  force_destroy = true # lab: allow destroy with logs present
+  force_destroy = true # allow destroy with logs present
 }
 
 resource "aws_s3_bucket_public_access_block" "trail" {
@@ -30,7 +19,7 @@ resource "aws_s3_bucket_public_access_block" "trail" {
   restrict_public_buckets = true
 }
 
-# CloudTrail must be allowed to write to the bucket.
+# Policy: allow CloudTrail to write to the bucket.
 data "aws_iam_policy_document" "trail_bucket" {
   statement {
     sid    = "AWSCloudTrailAclCheck"
@@ -71,14 +60,16 @@ resource "aws_s3_bucket_policy" "trail" {
 }
 
 # ##############################
-# CloudWatch Logs delivery.
-# S3 is the durable store; this copy to CloudWatch lets us run the same
-# Logs Insights queries used for the EKS audit / netpol logs.
+# CloudWatch Logs: cloudtrail
 # ##############################
 resource "aws_cloudwatch_log_group" "trail" {
   name              = "/aws/cloudtrail/${local.common_name}"
-  retention_in_days = local.eks_log_retention_days # lab: short retention
+  retention_in_days = local.eks_log_retention_days
 }
+
+# ##############################
+# IAM: allow CloudWatch to log CloudTrail
+# ##############################
 
 # Role CloudTrail assumes to write into the log group.
 data "aws_iam_policy_document" "trail_cw_assume" {
@@ -112,7 +103,7 @@ resource "aws_iam_role_policy" "trail_cw" {
 }
 
 # ##############################
-# The trail
+# CloudTrail: the AWS API plane system of record.
 # ##############################
 resource "aws_cloudtrail" "main" {
   name           = "${local.common_name}-trail"
@@ -122,13 +113,10 @@ resource "aws_cloudtrail" "main" {
   is_multi_region_trail         = true
   enable_log_file_validation    = true
 
-  # Also stream to CloudWatch Logs for Logs Insights querying.
-  cloud_watch_logs_group_arn = "${aws_cloudwatch_log_group.trail.arn}:*"
-  cloud_watch_logs_role_arn  = aws_iam_role.trail_cw.arn
+  cloud_watch_logs_group_arn = "${aws_cloudwatch_log_group.trail.arn}:*" # cloudwatch log
+  cloud_watch_logs_role_arn  = aws_iam_role.trail_cw.arn                 # IAM: allow to log in CloudWatch
 
-  # Management events, read + write. ReadWriteType defaults to "All"; stated
-  # explicitly because GetSecretValue / ListSecrets are read-type events and
-  # would be missed if a trail excluded reads.
+  # read write all events
   event_selector {
     read_write_type           = "All"
     include_management_events = true

@@ -109,7 +109,7 @@ fields @timestamp, user.username, verb, objectRef.namespace, objectRef.name, sou
 
 /*
 2026-10-17T18:08:50.098Z	system:serviceaccount:argocd:argocd-application-controller	list			10.0.33.70
-2026-10-17T18:05:14.216Z	system:serviceaccount:react:react2shell	list			10.0.35.58
+2026-10-17T18:05:14.216Z	system:serviceaccount:react:react2shell	                    list			10.0.35.58
 2026-10-17T17:58:49.848Z	system:serviceaccount:argocd:argocd-application-controller	list			10.0.33.70
 */
 
