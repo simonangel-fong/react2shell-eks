@@ -80,7 +80,7 @@ spec:
               memory: 1024Mi
           volumeMounts:
             - name: next-cache
-              mountPath: /app/.next
+              mountPath: /app/.next/cache
             - name: tmp
               mountPath: /tmp
 ---

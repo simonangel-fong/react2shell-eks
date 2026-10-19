@@ -1,0 +1,46 @@
+# Production-build variant of the INSECURE app, for the container-hardening phase.
+#
+# Purpose: the app stays vulnerable (RCE-reachable) and keeps a shell + tooling,
+# but it runs `next start` on a prebuilt app instead of `next dev`. That removes
+# the runtime writes to /app/.next, so the pod can run with
+# `readOnlyRootFilesystem: true` and demonstrate the container hardening
+# *containing* the breach — rce.py still lands.
+#
+# Differences vs Dockerfile.insecure:
+#  - next build (at image build) + next start (runtime), not `npm run dev`
+#  - .next is built into the image and owned by uid 1000 (read-only-FS friendly)
+#  - runs as non-root uid 1000 to match the pod securityContext
+# Deliberately NOT changed (keeps the lab vulnerable):
+#  - next@^15.2.2 (the vulnerable version) — NOT patched
+#  - node:20-slim base with curl/jq + shell — NOT distroless
+
+FROM node:20-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl jq \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install the pinned vulnerable dependency tree first (better layer caching).
+COPY react2shell-insecure/package.json react2shell-insecure/package-lock.json ./
+RUN npm ci
+
+# App source.
+COPY react2shell-insecure/ .
+
+# Build the production app at image-build time. All writes to /app/.next happen
+# here, in the image layer — not at runtime.
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# Hand ownership of the app (incl. the prebuilt .next) to the non-root runtime
+# user so `next start` can read it under a read-only root filesystem.
+RUN chown -R 1000:1000 /app
+
+USER 1000
+ENV NODE_ENV=production \
+    PORT=3000
+EXPOSE 3000
+# `next start` serves the prebuilt output; no compile/trace writes at runtime.
+CMD ["npm", "run", "start", "--", "-H", "0.0.0.0"]
