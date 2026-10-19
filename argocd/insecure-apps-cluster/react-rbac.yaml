@@ -1,0 +1,7 @@
+# rbac: sa - react2shell
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: react2shell
+  namespace: react
