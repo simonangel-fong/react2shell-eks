@@ -12,15 +12,16 @@
   - [Cluster layer hardening](#cluster-layer-hardening)
     - [Root cause analysis](#root-cause-analysis-1)
     - [Setup environment](#setup-environment-1)
-    - [Confirm](#confirm-1)
+    - [RBAC](#rbac)
+    - [Network Policy](#network-policy)
   - [Container layer hardening](#container-layer-hardening)
     - [Root cause analysis](#root-cause-analysis-2)
     - [Setup environment](#setup-environment-2)
-    - [Confirm](#confirm-2)
+    - [Confirm](#confirm-1)
   - [Code lay hardening](#code-lay-hardening)
     - [Root cause analysis](#root-cause-analysis-3)
     - [Setup environment](#setup-environment-3)
-    - [Confirm](#confirm-3)
+    - [Confirm](#confirm-2)
 
 ---
 
@@ -148,7 +149,7 @@ kubectl port-forward service/react2shell -n react 3000:3000
 
 ---
 
-### Confirm
+### RBAC
 
 ```sh
 # ##############################
@@ -156,16 +157,59 @@ kubectl port-forward service/react2shell -n react 3000:3000
 # ##############################
 # list permissions as sa
 kubectl auth can-i --list --as=system:serviceaccount:react:react2shell -n react
+# Warning: the list may be incomplete: webhook authorizer does not support user rule resolution
+# Resources                                       Non-Resource URLs                      Resource Names   Verbs
+# selfsubjectreviews.authentication.k8s.io        []                                     []               [create]
+# selfsubjectaccessreviews.authorization.k8s.io   []                                     []               [create]
+# selfsubjectrulesreviews.authorization.k8s.io    []                                     []               [create]
+#                                                 [/.well-known/openid-configuration/]   []               [get]
+#                                                 [/.well-known/openid-configuration]    []               [get]
+#                                                 [/api/*]                               []               [get]
+#                                                 [/api]                                 []               [get]
+#                                                 [/apis/*]                              []               [get]
+#                                                 [/apis]                                []               [get]
+#                                                 [/healthz]                             []               [get]
+#                                                 [/healthz]                             []               [get]
+#                                                 [/livez]                               []               [get]
+#                                                 [/livez]                               []               [get]
+#                                                 [/openapi/*]                           []               [get]
+#                                                 [/openapi]                             []               [get]
+#                                                 [/openid/v1/jwks/]                     []               [get]
+#                                                 [/openid/v1/jwks]                      []               [get]
+#                                                 [/readyz]                              []               [get]
+#                                                 [/readyz]                              []               [get]
+#                                                 [/version/]                            []               [get]
+#                                                 [/version/]                            []               [get]
+#                                                 [/version]                             []               [get]
+#                                                 [/version]                             []               [get]
 
-# can list secret
-kubectl auth can-i list secrets --all-namespaces --as=system:serviceaccount:secure-frontend:react2shell
+# disable list secret
+kubectl auth can-i list secrets --all-namespaces --as=system:serviceaccount:react:react2shell
+# no
+kubectl auth can-i get secrets --all-namespaces --as=system:serviceaccount:react:react2shell
+# no
 
 # confirm
 python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/secrets'
-
-# secure: cannot query ns
-python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/namespaces'
+# {
+#   "kind": "Status",
+#   "apiVersion": "v1",
+#   "metadata": {},
+#   "status": "Failure",
+#   "message": "secrets is forbidden: User \"system:serviceaccount:react:react2shell\" cannot list resource \"secrets\" in API group \"\" at the cluster scope",
+#   "reason": "Forbidden",
+#   "details": {
+#     "kind": "secrets"
+#   },
+#   "code": 403
+# }
 ```
+
+![cluster_rbac_secret](./img/harden/cluster_rbac_secret.png)
+
+---
+
+### Network Policy
 
 ```sh
 # ##############################
@@ -179,7 +223,7 @@ kubectl get netpol -n internal
 # default-deny-all            <none>          81s
 
 # confirm
-python scripts/rce.py $VICTIM_URL "curl -sS -m 5 http://backend-api.secure-backend/api/v1/users"
+python scripts/rce.py $VICTIM_URL "curl -sS -m 5 http://internal-api.internal/api/v1/users"
 # curl: (28) Connection timed out after 5001 milliseconds
 ```
 
