@@ -68,10 +68,16 @@ spec:
               cpu: 1024m
               memory: 1024Mi
           volumeMounts:
+            # writable paths required under readOnlyRootFilesystem: true
             - name: next-cache
-              mountPath: /app/.next
+              mountPath: /app/.next/cache
             - name: tmp
               mountPath: /tmp
+      volumes:
+        - name: next-cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
