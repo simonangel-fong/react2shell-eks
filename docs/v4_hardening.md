@@ -227,16 +227,19 @@ python scripts/rce.py $VICTIM_URL "curl -sS -m 5 http://internal-api.internal/ap
 # curl: (28) Connection timed out after 5001 milliseconds
 ```
 
+![cluster_netpol_api](./img/harden/cluster_netpol_api.png)
+
 ---
 
 ## Container layer hardening
 
 ### Root cause analysis
 
-| Issue | Root cause | fix |
-| ----- | ---------- | --- |
-|       | IAM        |     |
-|       | IRSA       |     |
+| Issue                                 | Root cause       | fix                    |
+| ------------------------------------- | ---------------- | ---------------------- |
+| privilege                             | security context | security context       |
+| pod without proper security context   | Namespace PSS    | enforce PSS            |
+| sa token is used for apiserver access | sa mount token   | disable mount sa token |
 
 ---
 
@@ -249,7 +252,7 @@ python scripts/rce.py $VICTIM_URL "curl -sS -m 5 http://internal-api.internal/ap
 ```sh
 # provision eks cluster
 terraform -chdir=infra/eks-secure apply -auto-approve
-aws eks update-kubeconfig --region ca-central-1 --name react2shell-eks-insecure
+aws eks update-kubeconfig --region ca-central-1 --name react2shell-eks-secure
 
 # deploy apps
 kubectl apply -f argocd/insecure-root-app-container.yaml
@@ -262,7 +265,39 @@ kubectl port-forward service/react2shell -n react 3000:3000
 ### Confirm
 
 ```sh
+# ##############################
+# trivy: scan manifest
+# ##############################
+trivy config --severity HIGH,CRITICAL --exit-code 1 argocd/insecure-apps-container/react.yaml
 
+# Report Summary
+# ┌────────────┬────────────┬───────────────────┐
+# │   Target   │    Type    │ Misconfigurations │
+# ├────────────┼────────────┼───────────────────┤
+# │ react.yaml │ kubernetes │         0         │
+# └────────────┴────────────┴───────────────────┘
+
+# ##############################
+# Code layer: still exploitable, due to code vulnerabilities
+# ##############################
+python scripts/rce.py $VICTIM_URL "id"
+
+python scripts/rce.py $VICTIM_URL "printenv CONTAINER_SECRET"
+
+
+
+
+# confirm: no sa token
+python scripts/rce.py http://localhost:8080 "cat /var/run/secrets/kubernetes.io/serviceaccount/token"
+
+# confirm: apiserver access fails
+python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1'
+
+# confirm: fs readonly
+python scripts/rce.py $VICTIM_URL "touch /etc/x"
+
+# confirm: pod without Security context gets rejected.
+kubectl -n secure-frontend run bad --image=nginx:1.27
 ```
 
 ---

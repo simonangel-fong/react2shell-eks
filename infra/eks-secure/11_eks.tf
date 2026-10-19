@@ -21,6 +21,13 @@ module "eks" {
     kube-proxy = {}
     vpc-cni = {
       before_compute = true
+      configuration_values = jsonencode({
+        enableNetworkPolicy = "true" # enable netpol
+        nodeAgent = {
+          enablePolicyEventLogs = "true" # enabel netpol logging; Costs ~1 extra vCPU per node for the aws-network-policy-agent.
+          enableCloudWatchLogs  = "true"
+        }
+      })
     }
     eks-pod-identity-agent = {
       before_compute = true
