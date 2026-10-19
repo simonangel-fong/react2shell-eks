@@ -46,6 +46,11 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      volumes:
+        - name: next-cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: react2shell
           image: docker.io/simonangelfong/react2shell:insecure
@@ -73,6 +78,11 @@ spec:
             limits:
               cpu: 1024m
               memory: 1024Mi
+          volumeMounts:
+            - name: next-cache
+              mountPath: /app/.next
+            - name: tmp
+              mountPath: /tmp
 ---
 apiVersion: v1
 kind: Service
