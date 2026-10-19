@@ -2,14 +2,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: frontend
+  name: react
 ---
 # Container level crown jewel
 apiVersion: v1
 kind: Secret
 metadata:
   name: container-secret
-  namespace: frontend
+  namespace: react
 type: Opaque
 stringData:
   password: "CoNtAinEr-sEcRet-InsECurE"
@@ -19,7 +19,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: react2shell
-  namespace: frontend
+  namespace: react
   labels:
     app: react2shell
 spec:
@@ -58,7 +58,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: react2shell
-  namespace: frontend
+  namespace: react
   labels:
     app: react2shell
 spec:

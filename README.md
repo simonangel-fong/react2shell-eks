@@ -12,4 +12,5 @@ An security project to secure an EKS cluster.
 - [Harden code](./docs/07_harden_code.md)
 - [CI/CD workflow](./docs/08_cicd.md)
 
-
+- [Hacker Breach](./docs/v2_eks_breach.md)
+- [Incident Response](./docs/v3_incident_response.md)
