@@ -12,8 +12,8 @@ react2shell-eks/
   argocd/             argocd, app-of-apps, k8s manifests
   kind/               kind cluster for local dev
   infra/
-    project/          project-level terraform code
-    eks/              eks terraform code
+    eks-secure/       eks cluster with secure config
+    eks-insecure/     eks cluster with insecure config
   docs/               documentation
   README
 ```
@@ -31,7 +31,7 @@ react2shell-eks/
 | 7   | Harden code          | Harden at code/dockerfile level                            | Secure at code/dockerfile level           | Done     |
 | 8   | shift left           | create github actions workflow                             | Insecure push get rejected                | Done     |
 | 9   | Insecure EKS & breah | Create insecure AWS resources; retrieve cloud crown jewels | Cloud level crown jewels get retrieves    | Done     |
-| 10  | Secure EKS           | Harden at cloud level                                      | Secure at cloud level                     |          |
+| 10  | Secure EKS           | Harden at cloud level                                      | Secure at cloud level                     | Done     |
 | 11  | Cloud monitoring     | AWS-native detection: CloudTrail + GuardDuty → Slack       | Cloud breach alert is send to slack       |          |
 | 12  | project video        | short and full videos                                      | Create and publish videos                 |          |
 

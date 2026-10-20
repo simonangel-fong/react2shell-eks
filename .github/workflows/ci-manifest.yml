@@ -1,0 +1,94 @@
+name: ci-manifest
+
+# Shift-left gate #3 - the CONTAINER & CLUSTER layer.
+# Shift the Kyverno admission policy left: a Pod the cluster would reject
+# fails the PR instead. Paths target argocd/secure-apps (the live manifests).
+on:
+  pull_request:
+    paths:
+      - "argocd/secure-apps/**"
+      - "argocd/platform/**"
+      - ".github/workflows/ci-manifest.yml"
+  push:
+    branches: [master]
+    paths:
+      - "argocd/secure-apps/**"
+      - "argocd/platform/**"
+      - ".github/workflows/ci-manifest.yml"
+
+  workflow_dispatch: # manual trigger for demos
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kyverno:
+    name: kyverno policy (shift-left admission)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: install kyverno cli
+        uses: kyverno/action-install-cli@fcee92fca5c883169ef9927acf543e0b5fc58289 # v0.2.0
+        with:
+          release: v1.19.1 # ValidatingPolicy (policies.kyverno.io/v1) needs >=1.17
+
+      # Every workload manifest, not one hand-picked file - a new Deployment
+      # must not be able to slip past the gate by simply not being listed.
+      - name: apply image policy to all workload manifests
+        run: |
+          set -euo pipefail
+          mapfile -t targets < <(
+            grep -rlE '^kind:[[:space:]]*(Deployment|StatefulSet|DaemonSet|Pod|Job|CronJob)' \
+              argocd/secure-apps --include='*.yaml' | sort
+          )
+          if [ ${#targets[@]} -eq 0 ]; then
+            echo "::error::no workload manifests found - path filter is stale"
+            exit 1
+          fi
+          printf 'scanning: %s\n' "${targets[@]}"
+          kyverno apply argocd/platform/kyverno-image-policy.yaml \
+            $(printf -- '--resource %s ' "${targets[@]}") \
+            --detailed-results
+
+  trivy-config:
+    name: k8s manifest misconfig
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: trivy config (SARIF)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: argocd/secure-apps
+          format: sarif
+          output: trivy-manifest.sarif
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+
+      - name: upload SARIF
+        uses: github/codeql-action/upload-sarif@48870fdd6b42ee6474ec4207209ff87609271a5e # v4.39.0
+        with:
+          sarif_file: trivy-manifest.sarif
+          category: trivy-manifest
+
+      - name: trivy config (gate)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: argocd/secure-apps
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "1"

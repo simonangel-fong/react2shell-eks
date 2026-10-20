@@ -131,6 +131,7 @@ kubectl -n argocd get applications
 #### Debug Argo CD
 
 ```sh
+kubectl delete application falco -n argocd
 kubectl patch application falco -n argocd --type merge -p '{"metadata":{"finalizers":null}}'
 
 ```

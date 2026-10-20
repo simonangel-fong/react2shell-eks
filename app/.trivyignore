@@ -11,7 +11,7 @@ CVE-2026-31802
 CVE-2026-59874
 CVE-2026-73566
 
-# Accepted risk (review 2026-11-08): libssl3/OpenSSL CVEs in the distroless
+# Accepted risk (review 2026-10-08): libssl3/OpenSSL CVEs in the distroless
 # base image. Debian has fixes (e.g. 3.0.19-1~deb12u2) but the distroless
 # nodejs20-debian12 base has not been rebuilt with them yet, and distroless has
 # no package manager to patch manually. Re-pull the base and drop these as soon
@@ -22,3 +22,27 @@ CVE-2026-28388
 CVE-2026-28389
 CVE-2026-28390
 CVE-2026-45447
+
+# Out of scope (review 2026-10-19): post-15.2.9 Next.js CVEs and transitive
+# sharp CVEs. This lab's concern is React2Shell (CVE-2025-55182), which the
+# next@15.2.9 pin already fixes. These later advisories are FIXABLE (next
+# >=15.5.24, sharp >=0.35.5) but deferred: bumping the whole framework is out of
+# scope for the project and not required to demonstrate the hardening story.
+# Drop these if/when next is bumped for other reasons.
+# next:
+CVE-2026-75604
+GHSA-2xp9-vwfh-vxw4
+CVE-2026-44573
+CVE-2026-44575
+CVE-2026-44578
+CVE-2026-44579
+CVE-2026-45109
+CVE-2026-64641
+CVE-2026-64645
+CVE-2026-64649
+GHSA-8h8q-6873-q5fj
+GHSA-q4gf-8mx6-v5v3
+# sharp (transitive, image optimization):
+GHSA-f88m-g3jw-g9cj
+GHSA-rgj7-g3m4-5g8c
+GHSA-wq5f-xc86-pv6w

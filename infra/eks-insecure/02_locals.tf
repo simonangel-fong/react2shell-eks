@@ -30,19 +30,20 @@ locals {
   eks_node_min     = 2
   eks_node_max     = 5
   eks_node_desired = 3
+  # control plane logging
+  eks_log_types          = ["audit", "authenticator"]
+  eks_log_retention_days = 7
 
   # ##############################
   # Argocd
   # ##############################
   argocd_namespace     = "argocd"
   argocd_chart_version = "10.10.0"
-  argocd_repo_url      = "https://github.com/simonangel-fong/react2shell-eks.git"
-  argocd_root_app_path = "argocd"
-  argocd_target_rev    = "master"
 
   # ##############################
-  # gateway api / alb exposure
+  # irsa (MISCONFIG to enable exploit)
   # ##############################
+<<<<<<< HEAD
   # Upstream Gateway API, standard channel. LBC v3.x requires v1.6.x.
   gateway_api_version = "v1.6.3"
   # AWS LBC release tag; sources the gateway.k8s.aws CRDs.
@@ -70,6 +71,9 @@ locals {
   # irsa (MISCONFIG to enable exploit
   # ##############################
   irsa_namespace = "insecure-frontend"
+=======
+  irsa_namespace = "react"
+>>>>>>> secure
   irsa_sa        = "react2shell"
 }
 
