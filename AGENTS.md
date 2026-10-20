@@ -5,7 +5,7 @@
 - project purpose:
   - a personal k8s security lab around **CVE-2025-55182** ("React2Shell").
 - Technologies:
-  - react, kind, eks, argocd
+  - react, kind, eks, argocd, terraform, aws
 
 ---
 
@@ -16,9 +16,7 @@ secure-aks/
   app/                react app source code
   argocd/             argocd, app-of-apps, k8s manifests
   kind/               kind cluster for local dev
-  infra/
-    project/          project-level terraform code
-    eks/              eks terraform code
+  infra/              terraform code
   docs/               documentation
   README
 ```

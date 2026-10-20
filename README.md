@@ -17,3 +17,14 @@ An security project to secure an EKS cluster.
 - [Cluster hardening](./docs/v4_hardening.md)
 - [Secure Pipeline](./docs/v5_pipeline.md)
 
+- Doc reorganize
+- post:
+  - p1: CKS
+  - p2: 
+    - hacker: video
+  - p3:
+    - ir
+  - p4:
+    - harden
+  - p5:
+    - pipeline
