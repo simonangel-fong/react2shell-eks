@@ -10,7 +10,7 @@ on:
       - "app/.trivyignore"
       - ".github/workflows/ci-image.yml"
   push:
-    branches: 
+    branches:
       - master
     paths:
       - "app/react2shell-secure/**"
@@ -41,7 +41,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # Catches root USER, :latest base, missing pinning - before any build cost.
+      # scan dockerfile
       - name: trivy config - Dockerfile.secure
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
