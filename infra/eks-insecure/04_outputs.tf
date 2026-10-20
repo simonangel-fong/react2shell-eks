@@ -1,24 +1,6 @@
 # outputs.tf
 
 # ##############################
-# VPC
-# ##############################
-output "vpc_id" {
-  description = "VPC ID."
-  value       = module.vpc.vpc_id
-}
-
-output "private_subnet_ids" {
-  description = "Private subnet IDs (EKS nodes)."
-  value       = module.vpc.private_subnets
-}
-
-output "public_subnet_ids" {
-  description = "Public subnet IDs (load balancers / NAT)."
-  value       = module.vpc.public_subnets
-}
-
-# ##############################
 # EKS
 # ##############################
 output "cluster_name" {
@@ -42,25 +24,6 @@ output "kubeconfig_command" {
 }
 
 # Monitoring
-output "cluster_log_group" {
-  description = "CloudWatch log group holding the control plane (audit) logs."
-  value       = module.eks.cloudwatch_log_group_name
-}
-
-output "cloudtrail_name" {
-  description = "CloudTrail trail recording the AWS API plane."
-  value       = aws_cloudtrail.main.name
-}
-
-output "cloudtrail_bucket" {
-  description = "S3 bucket holding the CloudTrail logs."
-  value       = aws_s3_bucket.trail.bucket
-}
-
-output "cloudtrail_log_group" {
-  description = "CloudWatch log group for CloudTrail (Logs Insights queries)."
-  value       = aws_cloudwatch_log_group.trail.name
-}
 
 output "rds_secret_arn" {
   description = "Crown-jewel secret ARN (phase 10 target)."
@@ -68,35 +31,6 @@ output "rds_secret_arn" {
 }
 
 output "pod_irsa_role_arn" {
-  description = "IRSA role ARN assumed by the insecure-frontend pod."
+  description = "IRSA role ARN assumed by the react pod."
   value       = aws_iam_role.pod.arn
 }
-<<<<<<< HEAD
-
-# ##############################
-# AWS Load Balancer Controller
-# ##############################
-output "albc_role_arn" {
-  description = "Pod Identity role ARN used by the AWS Load Balancer Controller."
-  value       = module.albc_pod_identity.iam_role_arn
-}
-
-# ##############################
-# DNS / TLS exposure
-# ##############################
-output "app_host" {
-  description = "Public hostname (Cloudflare-proxied) for the app."
-  value       = local.app_host
-}
-
-output "acm_certificate_arn" {
-  description = "ACM cert ARN for the Gateway HTTPS listener (Cloudflare Origin CA)."
-  value       = data.aws_acm_certificate.wildcard.arn
-}
-
-output "alb_security_group_id" {
-  description = "ALB security group (Cloudflare-only ingress) for LoadBalancerConfiguration."
-  value       = aws_security_group.alb.id
-}
-=======
->>>>>>> secure

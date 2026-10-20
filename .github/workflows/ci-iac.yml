@@ -53,7 +53,7 @@ jobs:
           terraform -chdir=infra/${{ matrix.stack }} validate
 
       - name: trivy config (SARIF)
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
           scan-ref: infra/${{ matrix.stack }}
@@ -64,7 +64,7 @@ jobs:
           exit-code: "0"
 
       - name: upload SARIF
-        uses: github/codeql-action/upload-sarif@48870fdd6b42ee6474ec4207209ff87609271a5e # v4.39.0
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           sarif_file: trivy-iac-${{ matrix.stack }}.sarif
           category: trivy-iac-${{ matrix.stack }}
@@ -73,7 +73,7 @@ jobs:
       # eks-secure is the real target: gate hard.
       - name: trivy config (gate)
         if: matrix.stack == 'eks-secure'
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
           scan-ref: infra/eks-secure
@@ -83,7 +83,7 @@ jobs:
           exit-code: "1"
 
       - name: trivy secret scan (gate, both stacks)
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: infra/${{ matrix.stack }}

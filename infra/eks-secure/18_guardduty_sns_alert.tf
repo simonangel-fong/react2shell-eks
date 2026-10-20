@@ -1,9 +1,7 @@
 # guardduty_sns_alert.tf
 
 # ##############################
-# Alert (monitoring phase): GuardDuty finding -> EventBridge -> SNS -> email.
-# EventBridge matches on severity, not finding type, so a novel finding still
-# alerts. Severity >= 4 (Medium+) to catch the simulated SecretsAccessed (5.0).
+# Alert: GuardDuty finding -> EventBridge -> SNS -> email.
 # ##############################
 
 resource "aws_sns_topic" "alert" {

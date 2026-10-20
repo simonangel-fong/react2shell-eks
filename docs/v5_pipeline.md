@@ -44,15 +44,12 @@
 | k8s manifest                   | container & cluster | trivy scan |
 | trraform codes                 | cloud               | trivy scan |
 
-| GitHub workflow   | Security risk                                                           | Trigger paths                                 | Gate                                          |
-| ----------------- | ----------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------- |
-| `ci-code.yml`     | SAST + secrets in source; dependency CVEs (incl. CVE-2025-55182)        | `app/react2shell-secure/**`                   | fail on HIGH/CRITICAL                         |
-| `ci-image.yml`    | Dockerfile misconfig; image CVEs; supply chain (SBOM + SLSA provenance) | `app/Dockerfile.secure`, app source           | fail on HIGH/CRITICAL; push only after scan   |
-| `ci-manifest.yml` | k8s manifest misconfig; Kyverno admission policy shifted left           | `argocd/secure-apps/**`, `argocd/platform/**` | fail on HIGH/CRITICAL or policy violation     |
-| `ci-iac.yml`      | Terraform cloud misconfig; hardcoded secrets                            | `infra/**`                                    | gate `eks-secure`; report-only `eks-insecure` |
-
-Each workflow maps one row of the risk table above to one layer, so a failing
-check names the layer that broke.
+| GitHub workflow   | Security risk                       | Trigger paths                       | Gate                                          |
+| ----------------- | ----------------------------------- | ----------------------------------- | --------------------------------------------- |
+| `ci-code.yml`     | SAST + secrets; dependency CVEs     | `app/react2shell-secure/**`         | HIGH/CRITICAL                                 |
+| `ci-image.yml`    | image; SBOM + SLSA provenance       | `app/Dockerfile.secure`, app source | HIGH/CRITICAL; push only after scan           |
+| `ci-manifest.yml` | k8s manifest misconfig;             | `argocd/secure-apps/react.yaml`     | HIGH/CRITICAL or policy violation             |
+| `ci-iac.yml`      | Terraform cloud misconfig + secrets | `infra/**`                          | gate `eks-secure`; report-only `eks-insecure` |
 
 - example
 

@@ -42,8 +42,6 @@ output "kubeconfig_command" {
 }
 
 output "rds_secret_arn" {
-  description = "Crown-jewel secret ARN (present but unreachable from the cluster)."
+  description = "Crown-jewel secret ARN."
   value       = aws_secretsmanager_secret.rds.arn
 }
-
-# NOTE: no pod_irsa_role_arn output — the pod has no AWS identity (phase 10).

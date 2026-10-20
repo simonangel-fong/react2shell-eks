@@ -1,8 +1,6 @@
+# the CODE layer: scan image; SBOM
 name: ci-image
 
-# Shift-left gate #2 - the IMAGE layer.
-# Build ONCE to a local tarball, scan THAT artifact, SBOM it, and push the
-# byte-identical image only on master. Nothing unscanned ever reaches the registry.
 on:
   pull_request:
     paths:
@@ -12,7 +10,8 @@ on:
       - "app/.trivyignore"
       - ".github/workflows/ci-image.yml"
   push:
-    branches: [master]
+    branches: 
+      - master
     paths:
       - "app/react2shell-secure/**"
       - "app/Dockerfile.secure"
@@ -20,7 +19,7 @@ on:
       - "app/.trivyignore"
       - ".github/workflows/ci-image.yml"
 
-  workflow_dispatch: # manual trigger for demos
+  workflow_dispatch: # manuals
 
 permissions:
   contents: read
@@ -44,7 +43,7 @@ jobs:
 
       # Catches root USER, :latest base, missing pinning - before any build cost.
       - name: trivy config - Dockerfile.secure
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
           scan-ref: app/Dockerfile.secure
@@ -69,8 +68,7 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # Single build. Output is an OCI tarball - the ONE artifact everything
-      # downstream consumes, so scan result and pushed bytes cannot diverge.
+      # Single build. Output is an OCI tarball
       - name: build image (once)
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -83,9 +81,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- GATE: vulnerabilities in the built image ---
+      # scan image
       - name: trivy image scan (SARIF)
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.TAG }}
           scanners: vuln
@@ -97,13 +95,14 @@ jobs:
           exit-code: "0"
 
       - name: upload SARIF
-        uses: github/codeql-action/upload-sarif@48870fdd6b42ee6474ec4207209ff87609271a5e # v4.39.0
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image
 
+      # gate
       - name: trivy image scan (gate)
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.TAG }}
           scanners: vuln
@@ -113,9 +112,9 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
-      # --- Supply chain: SBOM of the exact scanned image ---
+      # Supply chain: SBOM of the exact scanned image
       - name: generate SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.TAG }}
           scan-type: image
@@ -134,9 +133,6 @@ jobs:
     needs: build-scan
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    # A dedicated job keeps registry creds out of the job that runs build/scan
-    # tooling against untrusted PR-adjacent code.
-    environment: dockerhub
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -150,7 +146,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Same context + same gha cache => cache-hit rebuild of the scanned layers.
       - name: push image
         id: push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -163,7 +158,6 @@ jobs:
           sbom: true
           cache-from: type=gha
 
-      # Kyverno admission pins by digest - surface it for the manifest bump.
       - name: report digest
         run: |
           echo "### Pushed image" >> "$GITHUB_STEP_SUMMARY"

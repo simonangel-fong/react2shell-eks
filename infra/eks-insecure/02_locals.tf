@@ -43,37 +43,7 @@ locals {
   # ##############################
   # irsa (MISCONFIG to enable exploit)
   # ##############################
-<<<<<<< HEAD
-  # Upstream Gateway API, standard channel. LBC v3.x requires v1.6.x.
-  gateway_api_version = "v1.6.3"
-  # AWS LBC release tag; sources the gateway.k8s.aws CRDs.
-  lbc_crd_version = "v3.6.0"
-
-  # ##############################
-  # aws load balancer controller
-  # ##############################
-  albc_namespace       = "kube-system"
-  albc_service_account = "aws-load-balancer-controller"
-  albc_chart_version   = "3.6.0"
-
-  # ##############################
-  # dns / tls exposure
-  # ##############################
-  # Public hostname, proxied through Cloudflare.
-  app_host = "react2shell-insecure.arguswatcher.net"
-  # Cloudflare zone that hosts app_host.
-  dns_zone = "arguswatcher.net"
-  # Wildcard cert covering app_host, in the ALB's region.
-  # CloudFlare Origin CA cert: edge-trusted only, proxied mode required.
-  acm_domain = "*.arguswatcher.net"
-
-  # ##############################
-  # irsa (MISCONFIG to enable exploit
-  # ##############################
-  irsa_namespace = "insecure-frontend"
-=======
   irsa_namespace = "react"
->>>>>>> secure
   irsa_sa        = "react2shell"
 }
 

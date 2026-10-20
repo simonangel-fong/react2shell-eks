@@ -15,31 +15,3 @@ resource "helm_release" "argocd" {
 
   depends_on = [module.eks]
 }
-
-# # Install App-of-apps root as a tiny local Helm chart.
-# resource "helm_release" "root_app" {
-#   name      = "root-app"
-#   namespace = local.argocd_namespace
-#   chart     = "${path.module}/charts/root-app"
-
-#   set = [
-#     {
-#       name  = "namespace"
-#       value = local.argocd_namespace
-#     },
-#     {
-#       name  = "repoURL"
-#       value = local.argocd_repo_url
-#     },
-#     {
-#       name  = "targetRevision"
-#       value = local.argocd_target_rev
-#     },
-#     {
-#       name  = "path"
-#       value = "${local.argocd_root_app_path}/apps"
-#     },
-#   ]
-
-#   depends_on = [helm_release.argocd]
-# }
