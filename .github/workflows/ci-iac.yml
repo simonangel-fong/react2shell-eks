@@ -52,6 +52,7 @@ jobs:
         with:
           scan-type: config
           scan-ref: infra/eks-secure
+          skip-dirs: "**/.terraform"
           trivyignores: infra/eks-secure/.trivyignore
           format: sarif
           output: trivy-iac-eks-secure.sarif
@@ -70,6 +71,7 @@ jobs:
         with:
           scan-type: config
           scan-ref: infra/eks-secure
+          skip-dirs: "**/.terraform"
           trivyignores: infra/eks-secure/.trivyignore
           format: table
           severity: HIGH,CRITICAL
@@ -81,6 +83,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: infra/eks-secure
+          skip-dirs: "**/.terraform"
           scanners: secret
           format: table
           severity: HIGH,CRITICAL
