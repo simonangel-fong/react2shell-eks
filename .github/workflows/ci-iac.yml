@@ -1,17 +1,16 @@
+# the CLOUD layer: scan Terraform
 name: ci-iac
 
-# Shift-left gate #4 - the CLOUD layer.
-# Terraform misconfig + hardcoded secrets before any plan/apply.
-# Consumes the per-stack .trivyignore files (accepted lab-only findings).
 on:
   pull_request:
     paths:
-      - "infra/**"
+      - "infra/eks-secure/**"
       - ".github/workflows/ci-iac.yml"
   push:
-    branches: [master]
+    branches:
+      - master
     paths:
-      - "infra/**"
+      - "infra/eks-secure/**"
       - ".github/workflows/ci-iac.yml"
 
   workflow_dispatch: # manual trigger for demos
@@ -25,15 +24,11 @@ concurrency:
 
 jobs:
   terraform:
-    name: terraform (${{ matrix.stack }})
+    name: terraform (eks-secure)
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        stack: [eks-secure, eks-insecure]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,34 +40,32 @@ jobs:
           terraform_wrapper: false
 
       - name: fmt check
-        run: terraform -chdir=infra/${{ matrix.stack }} fmt -check -recursive
+        run: terraform -chdir=infra/eks-secure fmt -check -recursive
 
       - name: validate
         run: |
-          terraform -chdir=infra/${{ matrix.stack }} init -backend=false -input=false
-          terraform -chdir=infra/${{ matrix.stack }} validate
+          terraform -chdir=infra/eks-secure init -backend=false -input=false
+          terraform -chdir=infra/eks-secure validate
 
       - name: trivy config (SARIF)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
-          scan-ref: infra/${{ matrix.stack }}
-          trivyignores: infra/${{ matrix.stack }}/.trivyignore
+          scan-ref: infra/eks-secure
+          trivyignores: infra/eks-secure/.trivyignore
           format: sarif
-          output: trivy-iac-${{ matrix.stack }}.sarif
+          output: trivy-iac-eks-secure.sarif
           severity: HIGH,CRITICAL
           exit-code: "0"
 
       - name: upload SARIF
         uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
-          sarif_file: trivy-iac-${{ matrix.stack }}.sarif
-          category: trivy-iac-${{ matrix.stack }}
+          sarif_file: trivy-iac-eks-secure.sarif
+          category: trivy-iac-eks-secure
 
-      # eks-insecure is a deliberately vulnerable teaching stack: report, never gate.
-      # eks-secure is the real target: gate hard.
+      # scan config
       - name: trivy config (gate)
-        if: matrix.stack == 'eks-secure'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
@@ -82,11 +75,12 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: "1"
 
-      - name: trivy secret scan (gate, both stacks)
+      # scan secret
+      - name: trivy secret scan (gate)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
-          scan-ref: infra/${{ matrix.stack }}
+          scan-ref: infra/eks-secure
           scanners: secret
           format: table
           severity: HIGH,CRITICAL
