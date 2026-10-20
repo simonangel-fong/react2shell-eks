@@ -1,0 +1,104 @@
+# the CODE layer: SAST (source misconfig/secrets) + dependency CVEs on the secure app.
+name: ci-code
+
+on:
+  pull_request:
+    paths:
+      - "app/react2shell-secure/**"
+      - "app/.trivyignore"
+      - ".github/workflows/ci-code.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "app/react2shell-secure/**"
+      - "app/.trivyignore"
+      - ".github/workflows/ci-code.yml"
+
+  workflow_dispatch: # manual
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sast:
+    name: SAST + secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to code scanning
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # scane app's misconfig + secrets
+      - name: trivy fs - misconfig + secrets
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: app/react2shell-secure
+          scanners: misconfig,secret
+          trivyignores: app/.trivyignore
+          format: sarif
+          output: trivy-sast.sarif
+          severity: HIGH,CRITICAL
+          exit-code: "0" # report-only; SARIF is the record
+
+      - name: upload SARIF
+        uses: github/codeql-action/upload-sarif@48870fdd6b42ee6474ec4207209ff87609271a5e # v4.39.0
+        with:
+          sarif_file: trivy-sast.sarif
+          category: trivy-sast
+
+      # rescan and exit if fails
+      - name: trivy fs - gate on HIGH/CRITICAL
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: app/react2shell-secure
+          scanners: misconfig,secret
+          trivyignores: app/.trivyignore
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+  deps:
+    name: dependency CVEs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: app/react2shell-secure/package-lock.json
+
+      - name: install (lockfile-exact)
+        working-directory: app/react2shell-secure
+        run: npm ci --ignore-scripts # no postinstall code execution
+
+      - name: build
+        working-directory: app/react2shell-secure
+        run: npm run build
+
+      # The CVE that started this lab (CVE-2025-55182) is a dependency CVE.
+      # This is the gate that would have caught it before it ever built.
+      - name: trivy fs - lockfile CVEs
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: app/react2shell-secure
+          scanners: vuln
+          trivyignores: app/.trivyignore
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

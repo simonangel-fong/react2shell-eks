@@ -8,7 +8,7 @@
   - [Cloud layer hardening](#cloud-layer-hardening)
     - [Root cause analysis](#root-cause-analysis)
     - [Setup environment](#setup-environment)
-    - [Confirm](#confirm)
+    - [RCE replay](#rce-replay)
   - [Cluster layer hardening](#cluster-layer-hardening)
     - [Root cause analysis](#root-cause-analysis-1)
     - [Setup environment](#setup-environment-1)
@@ -22,9 +22,10 @@
   - [Code layer hardening](#code-layer-hardening)
     - [Root cause analysis](#root-cause-analysis-3)
     - [Setup EKS](#setup-eks)
-    - [Upgrade secure release](#upgrade-secure-release)
+    - [Upgrade release](#upgrade-release)
     - [Harden Dockerfile](#harden-dockerfile)
     - [Deploy manifest](#deploy-manifest)
+    - [RCE Replay](#rce-replay-1)
 
 ---
 
@@ -42,7 +43,7 @@
 | --- | --------------------------- | --------- | ------------------------------------ | ----------------------------------- |
 | 0   | Harden cloud with terraform | cloud     | eks-secure + insecure-apps-cloud     | secure RDS secret                   |
 | 1   | Harden cluster              | cluster   | eks-secure + insecure-apps-cluster   | secure cluster secret, internal api |
-| 2   | Harden container            | container | eks-secure + insecure-apps-container | secure sa token, apiserver, ESO     |
+| 2   | Harden container            | container | eks-secure + insecure-apps-container | secure sa token, apiserver          |
 | 3   | Harden code                 | code      | eks-secure + secure-apps             | disable exploit                     |
 
 ---
@@ -66,7 +67,7 @@
 
 ```sh
 # trivy scan
-trivy config infra/eks-secure --severity HIGH,CRITICAL
+trivy config infra/eks-secure --severity HIGH,CRITICAL --skip-dirs "**/.terraform" --ignorefile infra/eks-secure/.trivyignore
 
 # provision eks cluster
 terraform -chdir=infra/eks-secure apply -auto-approve
@@ -80,7 +81,7 @@ kubectl port-forward service/react2shell -n react 3000:3000
 
 ---
 
-### Confirm
+### RCE replay
 
 ```sh
 VICTIM_URL="http://react2shell.arguswatcher.net:3000"
@@ -122,10 +123,10 @@ python3 scripts/rce.py $VICTIM_URL "node /tmp/s.js --list"
 
 ### Root cause analysis
 
-| Issue                    | Root cause                          | fix                    |
-| ------------------------ | ----------------------------------- | ---------------------- |
-| Access to internal-api   | flat network without network policy | Add network policy     |
-| Access to cluster secret | board RBAC permission               | grant least permission |
+| Issue                    | Root cause                     | fix                    |
+| ------------------------ | ------------------------------ | ---------------------- |
+| Access to internal-api   | flat network without isolation | Add network policy     |
+| Access to cluster secret | board RBAC permission          | grant least permission |
 
 ---
 
@@ -204,6 +205,8 @@ python scripts/rce.py $VICTIM_URL 'APISERVER=https://kubernetes.default.svc;SERV
 # }
 ```
 
+- forbidden access to cluster secret
+
 ![cluster_rbac_secret](./img/harden/cluster_rbac_secret.png)
 
 ---
@@ -225,6 +228,8 @@ kubectl get netpol -n internal
 python scripts/rce.py $VICTIM_URL "curl -sS -m 5 http://internal-api.internal/api/v1/users"
 # curl: (28) Connection timed out after 5001 milliseconds
 ```
+
+- timeout: request to internal-api
 
 ![cluster_netpol_api](./img/harden/cluster_netpol_api.png)
 
@@ -277,6 +282,8 @@ trivy config --severity HIGH,CRITICAL --exit-code 1 argocd/insecure-apps-contain
 # └────────────┴────────────┴───────────────────┘
 ```
 
+- trivy scan k8s manifest
+
 ![container_trivy](./img/harden/container_trivy.png)
 
 ---
@@ -293,6 +300,8 @@ python scripts/rce.py $VICTIM_URL "id"
 python scripts/rce.py $VICTIM_URL "printenv CONTAINER_SECRET"
 # CoNtAinEr-sEcRet-InsECurE
 ```
+
+- the app is still exploitable but run as non root user(1000)
 
 ![container_exploit](./img/harden/container_exploit.png)
 
@@ -313,6 +322,8 @@ python scripts/rce.py $VICTIM_URL "touch /etc/x"
 # touch: cannot touch '/etc/x': Read-only file system
 ```
 
+- disable service account token mounting and file system become readonly.
+
 ![container_security_context](./img/harden/container_security_context.png)
 
 ---
@@ -324,6 +335,8 @@ python scripts/rce.py $VICTIM_URL "touch /etc/x"
 kubectl -n react run bad --image=nginx:1.27
 # Error from server (Forbidden): pods "bad" is forbidden: violates PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "bad" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "bad" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "bad" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "bad" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
 ```
+
+- pod fails to meet security standerd get rejected.
 
 ![container_pss](./img/harden/container_pss.png)
 
@@ -354,7 +367,7 @@ aws eks update-kubeconfig --region ca-central-1 --name react2shell-eks-secure
 
 ---
 
-### Upgrade secure release
+### Upgrade release
 
 - bump `next` to a patched 15.2 release; clear transitive deps.
 
@@ -389,16 +402,14 @@ npm run dev
 
 Secure dockerfile:
 
-| Misconfig                      | Issue               | Fix                                          |
-| ------------------------------ | ------------------- | -------------------------------------------- |
-| Entrypoint                     | npm run dev         | npm run build                                |
-| vulnerable release next@15.2.2 | CVE-2025-55182      | next@15.2.9                                  |
-| installed package              | curl/jq/dev tooling | distroless image only with Node + its libs   |
-| base image                     | OS attack surface   | multi-stage build to minimize attack surface |
-| privilege escalation           | run as root user    | runs as non-root                             |
+| Misconfig            | Issue               | Fix                                          |
+| -------------------- | ------------------- | -------------------------------------------- |
+| Entrypoint           | npm run dev         | npm run build                                |
+| Installed package    | curl/jq/dev tooling | distroless image only with Node + its libs   |
+| Base image           | OS attack surface   | multi-stage build to minimize attack surface |
+| Privilege escalation | run as root user    | runs as non-root                             |
 
-- Image size:
-  - ~1.3GB -> ~245MB
+- Image size: ~1.3GB -> ~245MB
 
 ```sh
 # ##############################
@@ -421,6 +432,14 @@ docker login
 docker push simonangelfong/react2shell:secure
 ```
 
+- docker build image
+
+![code_docker_build](./img/harden/code_docker_build.png)
+
+- trivy scan image
+
+![code_image_trivy](./img/harden/code_image_trivy.png)
+
 ---
 
 ### Deploy manifest
@@ -437,3 +456,40 @@ kubectl port-forward service/react2shell -n react 3000:3000
 ```
 
 ---
+
+### RCE Replay
+
+```sh
+VICTIM_URL="http://react2shell.arguswatcher.net:3000"
+
+# confirm url accessible
+curl -I $VICTIM_URL
+# HTTP/1.1 200 OK
+# Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding
+# x-nextjs-cache: HIT
+# x-nextjs-prerender: 1
+# x-nextjs-prerender: 1
+# x-nextjs-stale-time: 300
+# X-Powered-By: Next.js
+# Cache-Control: s-maxage=31536000
+# ETag: "looktw68p147m"
+# Content-Type: text/html; charset=utf-8
+# Content-Length: 5458
+# Date: Mon, 19 Oct 2026 21:46:19 GMT
+# Connection: keep-alive
+# Keep-Alive: timeout=5
+
+# ##############################
+# RCE: fails
+# ##############################
+# try RCE
+python scripts/rce.py $VICTIM_URL "id"
+# status code: 404
+# response text:
+# Server action not found.
+# executable response:
+```
+
+- RCE fails
+
+![code_secure](./img/harden/code_secure.png)

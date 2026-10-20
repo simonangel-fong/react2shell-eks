@@ -1,0 +1,24 @@
+# Accepted exceptions for `trivy config infra/eks-secure`
+#
+# Scope: the EKS misconfiguration leaking the RDS secret, not production AWS hardening.
+# Skip irrelevant issues
+
+# AWS-0104: node security group allows unrestricted egress (0.0.0.0/0).
+# Hardcoded in terraform-aws-modules/eks; not overridable without forking.
+# Nodes require outbound access to ECR, STS, and the EKS API endpoint.
+AWS-0104
+
+# AWS-0040 / AWS-0041: EKS public endpoint open to 0.0.0.0/0.
+# Lab is accessed from varying IPs; endpoint still requires IAM auth + access
+# entry mapping, and is orthogonal to the in-pod post-exploitation path.
+AWS-0040
+AWS-0041
+
+# AWS-0015 / AWS-0132: CloudTrail + trail bucket use AWS-managed keys, not CMKs.
+# Logs are already encrypted (SSE-S3) with public access blocked; the finding is
+# about key governance, not plaintext logs.
+AWS-0015
+AWS-0132
+
+# AWS-0095: GuardDuty SNS topic not encrypted at rest. Same key-governance scope.
+AWS-0095

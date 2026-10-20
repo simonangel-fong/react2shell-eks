@@ -14,3 +14,16 @@ An security project to secure an EKS cluster.
 
 - [Hacker Breach](./docs/v2_eks_breach.md)
 - [Incident Response](./docs/v3_incident_response.md)
+- [Cluster hardening](./docs/v4_hardening.md)
+- [Secure Pipeline](./docs/v5_pipeline.md)
+
+leftover:
+
+- Secure Pipeline;
+  - Shift left: static, supply chain
+  - monitoring: GuardDuty
+  - advanced:
+    - Policy as code: keyverno
+    - Sensitive data: ESO + secretmanager
+    - Observability: VPC flow logs + Cloudwatch insight 
+    - provider-agnostic: falco + LGTM
