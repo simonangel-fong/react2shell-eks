@@ -5,7 +5,7 @@
 - [reat2shell: project video](#reat2shell-project-video)
   - [Goal](#goal)
   - [Series Spine](#series-spine)
-  - [Posts \& Video \& document](#posts--video--document)
+  - [Posts \& Video](#posts--video)
 
 ---
 
@@ -22,7 +22,7 @@ A 5-part series: portfolio proof + LinkedIn activity while applying.
 post:
 
 - p0 and p1, same day, keep the hook
-- p2 ~ p5, 1 video / 3days
+- p2 ~ p4, 1 video / 3days
 
 **Batch-produce all 5 first**, then drip-release.
 
@@ -30,7 +30,7 @@ post:
 
 ## Series Spine
 
-- Same breach, same CVE, same cluster — seen from different perspectives.
+- Same breach, same CVE — seen from different perspectives.
   - Hacker, to steal sensitive data
   - Platform admin, to respond the incident
   - cluster security specialist, to harden the system
@@ -42,25 +42,25 @@ post:
   - direction flips with the persona:
 
 ```txt
-p2 Attacker — climbs in:        code/container (RCE, token) → cluster (probe RBAC) -> cloud (RDS secret)
-p3 Admin — trace, containment:  cloud → cluster → container (containment)
-p4 Security — hardens:          cloud → cluster → container → code  (close the doors)
-p5 devsecops — integrate:       cloud(terraform), cluster&container(manifests,POA,ESO), code (SAST)
+p1 Attacker — climbs in:        code/container (RCE, token) → cluster (probe RBAC) -> cloud (RDS secret)
+p2 Admin — trace, containment:  cloud → cluster → container (containment)
+p3 Security — hardens:          cloud → cluster → container → code  (close the doors)
+p4 devsecops — integrate:       cloud(terraform), cluster&container(manifests,POA,ESO), code (SAST)
 ```
 
 ---
 
-## Posts & Video & document
+## Posts & Video
 
 - posts
 
-| #   | Goal                                | Content                     | reference |
-| --- | ----------------------------------- | --------------------------- | --------- |
-| 0   | show cert, project hook             | text+images(cert+pass rate) |           |
-| 1   | show how attacker used react2shell  | text(short)+video#1         |
-| 2   | show how admin respond to incident  | text(short)+video#2         |
-| 3   | show how to harden the system       | text(short)+video#3         |
-| 4   | show how to integrate with business | text(short)+video#4         |
+| #   | Goal                                | Content                     | reference doc            |
+| --- | ----------------------------------- | --------------------------- | ------------------------ |
+| 0   | show cert, project hook             | text+images(cert+pass rate) |                          |
+| 1   | show how attacker used react2shell  | text(short)+video#1         | post01_eks_breah         |
+| 2   | show how admin respond to incident  | text(short)+video#2         | post02_incident_response |
+| 3   | show how to harden the system       | text(short)+video#3         | post03_hardening         |
+| 4   | show how to integrate with business | text(short)+video#4         | post04_pipeline          |
 
 - video
 
