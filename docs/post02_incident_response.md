@@ -359,8 +359,10 @@ TS=$(date -u +%Y%m%dT%H%M%SZ); mkdir -p evidence-$TS
 
 # save pod log
 kubectl -n react logs react2shell-6d4d4db59d-xwtxq > evidence-$TS/pod.log
+kubectl -n react logs -l app=react2shell > evidence-$TS/pod.log
 # save pod definition
 kubectl -n react get pod react2shell-6d4d4db59d-xwtxq -o yaml > evidence-$TS/pod.yaml
+kubectl -n react get pod -l app=react2shell -o yaml > evidence-$TS/pod.yaml
 # save event log
 kubectl -n react get events --sort-by=.lastTimestamp > evidence-$TS/events.txt
 
@@ -383,6 +385,7 @@ grep -c 'akid=ASIA' evidence-$TS/pod.log
 ```sh
 # add pod label
 kubectl -n react label pod react2shell-6d4d4db59d-xwtxq app=quarantined --overwrite
+kubectl -n react label pod app=quarantined -l app=react2shell --overwrite
 # pod/react2shell-6d4d4db59d-xwtxq labeled
 
 # Confirm: Pod still running, now orphaned from the ReplicaSet
