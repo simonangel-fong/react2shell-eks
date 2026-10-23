@@ -34,10 +34,11 @@ react2shell-eks/
 | 10  | Secure EKS           | Harden at cloud level                                      | Secure at cloud level                     | Done     |
 | 11  | Cloud monitoring     | AWS-native detection: CloudTrail + GuardDuty → Slack       | Cloud breach alert is send to slack       | Done     |
 | 12  | post 01              | show CKS + project hook                                    | post01                                    | Done     |
-| 13  | post 02 & video 01   | show attack                                                | post02 & video01                          |          |
-| 14  | post 03 & video 02   | show incident response                                     | post03 & video02                          |          |
-| 15  | post 04 & video 03   | show hardening                                             | post04 & video03                          |          |
-| 16  | post 05 & video 04   | show pipeline                                              | post05 & video04                          |          |
+| 13  | post 02 & video 01   | show attack                                                | post02 & video01                          | Done     |
+| 14  | post 03 & video 02   | show incident response                                     | post03 & video02                          | Done     |
+| 15  | post 04 & video 03   | show hardening                                             | post04 & video03                          | Done     |
+| 16  | post 05 & video 04   | show pipeline                                              | post05 & video04                          | Done     |
+| 17  | project website      | Create project website                                     | Website online                            |          |
 
 **Crown jewels (escalating blast radius)**
 
