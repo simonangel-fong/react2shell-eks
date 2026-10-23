@@ -1,0 +1,47 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="pipeline-guardduty" name="GuardDuty notification path">
+    <mxGraphModel dx="1251" dy="803" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="980" pageHeight="160" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="A2ipGnpxaxu2OK5-9eoF-2" parent="0" style="locked=0;" value="Background" />
+        <mxCell id="A2ipGnpxaxu2OK5-9eoF-3" parent="A2ipGnpxaxu2OK5-9eoF-2" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=none;gradientColor=light-dark(#ffe6cc, #ededed);fillColor=light-dark(#dae8fc, #ededed);" value="" vertex="1">
+          <mxGeometry height="160" width="980" as="geometry" />
+        </mxCell>
+        <mxCell id="1" parent="0" style="locked=1;" value="diagram" />
+        <mxCell id="eks" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#EAF3FC;strokeColor=#5683B2;strokeWidth=2;fontColor=#173F65;fontSize=24;fontFamily=Comic Sans MS;spacing=10;labelBorderColor=none;" value="Amazon&#xa;EKS" vertex="1">
+          <mxGeometry height="120" width="150" x="20" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="guardduty" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#F0EAF8;strokeColor=#8861AB;strokeWidth=2;fontColor=#563475;fontSize=24;fontFamily=Comic Sans MS;spacing=10;labelBorderColor=none;" value="GuardDuty" vertex="1">
+          <mxGeometry height="120" width="150" x="280" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sns" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FBEAF3;strokeColor=#B7648C;strokeWidth=2;fontColor=#81375C;fontSize=24;fontFamily=Comic Sans MS;spacing=10;labelBorderColor=none;" value="Amazon&#xa;SNS" vertex="1">
+          <mxGeometry height="120" width="150" x="570" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#F2F5F7;strokeColor=#7B8C9D;strokeWidth=2;fontColor=#304458;fontSize=24;fontFamily=Comic Sans MS;spacing=10;labelBorderColor=none;" value="Admin&#xa;Email" vertex="1">
+          <mxGeometry height="120" width="150" x="800" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="monitoring" edge="1" parent="1" source="eks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#566779;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;labelBorderColor=none;" target="guardduty" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="A2ipGnpxaxu2OK5-9eoF-4" connectable="0" parent="monitoring" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=fontColor,fontStyle,textOpacity,labelBorderWidth,labelPadding;fontFamily=Comic Sans MS;labelBorderColor=none;fontSize=16;labelBackgroundColor=none;" value="Detect" vertex="1">
+          <mxGeometry relative="1" x="0.001" as="geometry">
+            <mxPoint y="-20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="finding-routing" edge="1" parent="1" source="guardduty" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#566779;strokeWidth=2;fontFamily=Comic Sans MS;fontSize=17;fontColor=#566779;labelBackgroundColor=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;labelBorderColor=none;" target="sns" value="via EventBridge">
+          <mxGeometry relative="1" y="22" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="email-delivery" edge="1" parent="1" source="sns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#566779;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;labelBorderColor=none;" target="admin" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="A2ipGnpxaxu2OK5-9eoF-5" connectable="0" parent="email-delivery" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=fontFamily,fontColor,fontStyle,textOpacity,labelBorderColor,labelBorderWidth,labelPadding;fontFamily=Comic Sans MS;labelBorderColor=none;fontSize=16;labelBackgroundColor=none;" value="Notify" vertex="1">
+          <mxGeometry relative="1" x="-0.179" y="3" as="geometry">
+            <mxPoint x="7" y="-17" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
