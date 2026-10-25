@@ -210,7 +210,9 @@ data "aws_iam_policy_document" "github_apply" {
       "cloudfront:ListOriginAccessControls",
       "cloudfront:CreateInvalidation",
       "acm:DescribeCertificate",
+      "acm:GetCertificate",
       "acm:ListCertificates",
+      "acm:ListTagsForCertificate",
     ]
     resources = ["*"]
   }
@@ -226,6 +228,8 @@ data "aws_iam_policy_document" "github_apply" {
       "iam:ListAttachedRolePolicies",
       "iam:ListInstanceProfilesForRole",
       "iam:GetOpenIDConnectProvider",
+      "iam:ListOpenIDConnectProviders",
+      "iam:ListOpenIDConnectProviderTags",
     ]
     resources = ["*"]
   }

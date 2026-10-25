@@ -7,7 +7,7 @@
   - [Steps](#steps)
   - [Website design](#website-design)
   - [IaC](#iac)
-  - [CI/CD pipelines](#cicd-pipelines)
+  - [CI/CD pipelines - Onhold](#cicd-pipelines---onhold)
 
 ---
 
@@ -128,7 +128,7 @@ terraform -chdir=infra/project destroy -auto-approve
 
 ---
 
-## CI/CD pipelines
+## CI/CD pipelines - Onhold
 
 | #   | Workflow                 | Trigger                         | Jobs                                     |
 | --- | ------------------------ | ------------------------------- | ---------------------------------------- |
