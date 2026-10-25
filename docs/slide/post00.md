@@ -1,16 +1,16 @@
 **From 58% to 93%: What Failing the CKS Exam Taught Me About Engineering 🚀**
 
-I failed my first Certified Kubernetes Security Specialist (CKS) exam with 58%.
+I failed my first Certified Kubernetes Security Specialist (CKS) exam with a score of 58%.
 
 On my second attempt, I passed with **93%**. 🎉
 
-What changed? Not my Kubernetes knowledge, but how I approached problems under pressure.
+What changed? The biggest change was how I practiced and allocated my time under pressure.
 
 Here are 3 lessons I took away:
 
 **1️⃣ Practice beats memorization.**
 
-CKS is hands-on and time-limited. Official docs are available, but knowing where to look—and why a configuration works—comes from practice, not just reading.
+The CKS exam is hands-on and time-limited. Official docs are available, but knowing where to look—and why a configuration works—comes from practice, not just reading.
 
 **2️⃣ The environment matters.**
 
@@ -26,8 +26,8 @@ But a certificate is only the beginning.
 
 My next challenge: applying Kubernetes security skills to a real cloud environment.
 
-I'm building a hands-on **React2Shell security project on Amazon EKS** to explore attack simulation, AWS incident response, defense in depth (the Kubernetes 4Cs), and shift-left security in CI/CD.
+I’m building React2Shell on Amazon EKS, a hands-on security project exploring one vulnerability—CVE-2025-55182—across four layers and through four perspectives.
 
-I'll share what I build, what breaks, and how I secure it in upcoming posts.
+I’ll share what I build, what breaks, and how I secure it in upcoming posts.
 
 #CKS #Kubernetes #DevSecOps #PlatformEngineering #AWS #EKS

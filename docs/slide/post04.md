@@ -1,27 +1,45 @@
-**How do security improvements survive the next deployment?**
+**React2Shell on EKS — 4/4: The DevSecOps Engineer’s Perspective**
 
-For the final part of my personal React2Shell security lab on Amazon Elastic Kubernetes Service (EKS), I integrated checks into delivery and operations.
+One vulnerability. Four layers. Four perspectives.
 
-**React2Shell on EKS, Part 4 of 4: The DevSecOps engineer's perspective.**
+The environment is hardened. How do security improvements survive the next change?
 
-I implemented:
+For the final part of my Amazon EKS project, I took on the role of a DevSecOps engineer to integrate lessons from the React2Shell breach (CVE-2025-55182) into delivery and operations.
 
-- Four GitHub Actions workflows covering dependencies, images, Kubernetes manifests, and Terraform infrastructure.
-- Pipeline jobs that fail on findings covered by the configured severity thresholds and exceptions.
-- Scan reports and a software bill of materials (SBOM), an inventory of the image's components, for review.
-- An AWS alert route that delivers GuardDuty findings to an administrator by email.
+I added four GitHub Actions workflows covering the 4C security model:
 
-The recorded image workflow completes successfully. A sample GuardDuty finding confirms that the email notification reaches its destination.
+**Code · Container · Cluster · Cloud**
 
-The workflows provide feedback before deployment, while monitoring adds visibility afterward. Findings still need investigation, ownership, and remediation.
+- **Code:** check dependencies and scan for exposed secrets.
+- **Container:** scan images and generate an inventory of their components.
+- **Cluster:** check Kubernetes manifests for security misconfigurations.
+- **Cloud:** validate and scan Terraform infrastructure configuration.
 
-The video also outlines future options for policy enforcement, centralized secret management, and deeper observability, clearly separated from the demonstrated work.
+Pipeline jobs fail when findings meet the configured blocking criteria. I also routed GuardDuty findings to the administrator by email, testing delivery with a sample finding.
 
-The series connects application behavior and access controls to incident response and delivery automation.
+**Result:** The project now has repeatable security checks during delivery and a verified route for runtime alerts.
 
-I'd welcome feedback from platform engineering and DevSecOps teams working on similar challenges.
+**Takeaway:** A resilient application needs security checks early across Code, Container, Cluster, and Cloud, followed by ongoing monitoring after deployment. Shift-left checks help catch weaknesses before release; runtime monitoring helps surface signs of compromise while the system is running.
 
-Project code and walkthroughs:
+The video covers the workflows, the alert demonstration, and possible future extensions.
+
+**Project wrap-up:** This project began with a question after earning my CKS certification: how do these skills come together in a cloud environment? React2Shell on EKS became a documented case study connecting application security, incident response, platform hardening, and everyday delivery—through one vulnerability and four perspectives.
+
+Project website:
+https://react2shell-eks.arguswatcher.net/
+
+GitHub code and walkthroughs:
 https://github.com/simonangel-fong/react2shell-eks
 
 #DevSecOps #GitHubActions #AWS
+
+---
+
+## Attachments and publishing notes
+
+These notes are for publishing preparation; copy the post text above into LinkedIn.
+
+- **Video — upload to the main post:** [react2shell_eks_p04_devsecops.mp4](../video/post/react2shell_eks_p04_devsecops.mp4).
+- **Image — add to the first comment:** [summary.drawio.png](../img/diagram/summary.drawio.png), bringing together the four perspectives across the four layers.
+
+The GuardDuty demonstration uses a sample finding to verify notification delivery. Policy as code, centralized secret management, and deeper observability are presented as future extensions in the video.

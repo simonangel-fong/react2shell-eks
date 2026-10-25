@@ -1,25 +1,41 @@
-**A cloud secret was accessed. Which application was responsible?**
+**React2Shell on EKS — 2/4: The Platform Administrator’s Perspective**
 
-In my React2Shell security project on Amazon Elastic Kubernetes Service (EKS), I switched from the attacker's perspective to the platform administrator's.
+One vulnerability. Four layers. Four perspectives.
 
-**React2Shell on EKS, Part 2 of 4: Incident response.**
+A cloud secret was accessed. Which application was responsible, and how could I contain it while preserving evidence?
 
-The priority was to identify the affected workload and limit its access while preserving evidence.
+In my Amazon EKS project, I took on the role of a platform administrator to investigate the same simulated React2Shell breach (CVE-2025-55182).
 
-I followed the investigation through to containment:
+I followed the evidence back through three layers of the 4C security model:
 
-- Correlated AWS CloudTrail audit records with application logs, confirming two reads of the same lab credential.
-- Paused Argo CD's automatic configuration sync before making emergency changes.
-- Removed the compromised application instance from service traffic and applied network quarantine, retaining it for investigation.
-- Prepared an incident report separating completed containment from the remaining credential-cleanup actions.
+**Cloud → Cluster → Container**
 
-One lesson stood out: isolating an application does not invalidate credentials an attacker may have copied. Credential rotation and review of active cloud sessions require their own follow-through.
+- **Cloud:** reviewed AWS CloudTrail records to identify the AWS identity involved and the secret accessed.
+- **Cluster:** traced that identity to the Kubernetes service account and located the affected workload.
+- **Container:** correlated application logs with the cloud activity to confirm secret exposure.
 
-The video shows how I connected the evidence and documented that boundary.
+I then preserved evidence, paused Argo CD’s automatic sync, removed the compromised pod from service traffic, and quarantined it using a NetworkPolicy while retaining it for investigation.
 
-Next: hardening the environment and replaying the attack.
+**Result:** The compromised workload was contained, with evidence preserved for investigation.
 
-Project code and walkthroughs:
+**Takeaway:** Effective containment limits further damage while preserving evidence. Keeping the compromised workload available for investigation helps investigators establish the root cause and the full scope of the breach.
+
+The video follows the investigation, containment, and escalation.
+
+Next: the security specialist’s perspective—hardening all four layers and replaying the attack.
+
+Project website:
+https://react2shell-eks.arguswatcher.net/
+
+GitHub code and walkthroughs:
 https://github.com/simonangel-fong/react2shell-eks
 
 #IncidentResponse #Kubernetes #CloudSecurity
+
+---
+
+## Attachments and publishing notes
+
+These notes are for publishing preparation; copy the post text above into LinkedIn.
+
+- **Video — upload to the main post:** [react2shell_eks_p02_response.mp4](../video/post/react2shell_eks_p02_response.mp4).
