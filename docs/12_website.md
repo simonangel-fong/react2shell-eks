@@ -152,6 +152,8 @@ terraform -chdir=infra/project destroy -auto-approve
     scanned is the one that ships.
   - Cache split on upload: hashed assets `immutable`, `index.html` `no-cache`.
   - PRs run the checks only; nothing touches AWS.
+  - `infra/project/.trivyignore` records the two accepted findings (AWS-0132
+    SSE-S3 over a CMK, AWS-0011 no WAF) with the reasoning for each.
 
 - One-time setup
 

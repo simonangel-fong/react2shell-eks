@@ -107,6 +107,7 @@ jobs:
           scan-type: config
           scan-ref: infra/project
           skip-dirs: "**/.terraform"
+          trivyignores: infra/project/.trivyignore
           format: sarif
           output: trivy-iac-project.sarif
           severity: HIGH,CRITICAL
@@ -124,6 +125,7 @@ jobs:
           scan-type: config
           scan-ref: infra/project
           skip-dirs: "**/.terraform"
+          trivyignores: infra/project/.trivyignore
           format: table
           severity: HIGH,CRITICAL
           exit-code: "1"
@@ -134,6 +136,7 @@ jobs:
           scan-type: fs
           scan-ref: infra/project
           skip-dirs: "**/.terraform"
+          trivyignores: infra/project/.trivyignore
           scanners: secret
           format: table
           severity: HIGH,CRITICAL

@@ -134,22 +134,97 @@ data "aws_iam_policy_document" "github_apply" {
     resources = ["arn:aws:s3:::${var.tf_state_bucket}"]
   }
 
-  # The stack's own resources. Scoped by service rather than by arn because
-  # terraform reads and writes attributes across every resource it manages.
+  # The site bucket and its configuration. Enumerated rather than "s3:*" so the
+  # role cannot reach any other bucket in the account.
   statement {
-    sid    = "StackResources"
+    sid    = "SiteBucket"
     effect = "Allow"
     actions = [
-      "s3:*",
-      "cloudfront:*",
+      "s3:CreateBucket",
+      "s3:DeleteBucket",
+      "s3:GetBucketAcl",
+      "s3:GetBucketCORS",
+      "s3:GetBucketLocation",
+      "s3:GetBucketLogging",
+      "s3:GetBucketObjectLockConfiguration",
+      "s3:GetBucketOwnershipControls",
+      "s3:GetBucketPolicy",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:GetBucketRequestPayment",
+      "s3:GetBucketTagging",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketWebsite",
+      "s3:GetAccelerateConfiguration",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetLifecycleConfiguration",
+      "s3:GetReplicationConfiguration",
+      "s3:ListBucket",
+      "s3:PutBucketAcl",
+      "s3:PutBucketOwnershipControls",
+      "s3:PutBucketPolicy",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:PutBucketTagging",
+      "s3:PutBucketVersioning",
+      "s3:PutEncryptionConfiguration",
+      "s3:PutLifecycleConfiguration",
+      "s3:DeleteBucketPolicy",
+    ]
+    resources = ["arn:aws:s3:::${local.prefix_name}-site"]
+  }
+
+  # Objects in the site bucket, so destroy can empty it.
+  statement {
+    sid    = "SiteBucketObjects"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:GetObjectVersion",
+      "s3:DeleteObjectVersion",
+    ]
+    resources = ["arn:aws:s3:::${local.prefix_name}-site/*"]
+  }
+
+  # CloudFront and ACM have no resource-level permissions for these calls, so
+  # "*" is the only form AWS accepts. The actions are read plus this stack's
+  # own distribution lifecycle.
+  statement {
+    sid    = "DistributionAndCertificate"
+    effect = "Allow"
+    actions = [
+      "cloudfront:CreateDistribution",
+      "cloudfront:DeleteDistribution",
+      "cloudfront:GetDistribution",
+      "cloudfront:GetDistributionConfig",
+      "cloudfront:UpdateDistribution",
+      "cloudfront:ListDistributions",
+      "cloudfront:TagResource",
+      "cloudfront:UntagResource",
+      "cloudfront:ListTagsForResource",
+      "cloudfront:CreateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl",
+      "cloudfront:GetOriginAccessControl",
+      "cloudfront:GetOriginAccessControlConfig",
+      "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:ListOriginAccessControls",
+      "cloudfront:CreateInvalidation",
       "acm:DescribeCertificate",
       "acm:ListCertificates",
+    ]
+    resources = ["*"]
+  }
+
+  # Read-only IAM, needed for terraform to refresh the roles it manages.
+  statement {
+    sid    = "ReadIdentity"
+    effect = "Allow"
+    actions = [
       "iam:GetRole",
       "iam:GetRolePolicy",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
       "iam:ListInstanceProfilesForRole",
-      "iam:TagRole",
       "iam:GetOpenIDConnectProvider",
     ]
     resources = ["*"]
@@ -166,6 +241,8 @@ data "aws_iam_policy_document" "github_apply" {
       "iam:PutRolePolicy",
       "iam:DeleteRolePolicy",
       "iam:UpdateAssumeRolePolicy",
+      "iam:TagRole",
+      "iam:UntagRole",
     ]
     resources = ["arn:aws:iam::*:role/${local.prefix_name}-github-*"]
   }

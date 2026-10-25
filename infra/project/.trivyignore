@@ -1,0 +1,17 @@
+# Accepted exceptions for `trivy config infra/project`
+#
+# Scope: a static project website on S3 + CloudFront. The bucket holds only
+# public build output; there is no form, API, or datastore behind the origin.
+
+# AWS-0132: site bucket uses SSE-S3 rather than a customer managed key.
+# The objects are public website files served to anyone, so a CMK protects
+# content that is already published. It would also add a KMS decrypt on every
+# CloudFront origin fetch. Same key-governance scope accepted in eks-secure.
+AWS-0132
+
+# AWS-0011: no WAF in front of the distribution.
+# The origin is a private bucket of static assets reachable only over OAC:
+# no query handling, no forms, no credentials to steal. WAF's base and
+# per-request cost buys no meaningful control for read-only public files.
+# Revisit if the site ever gains a dynamic endpoint.
+AWS-0011
