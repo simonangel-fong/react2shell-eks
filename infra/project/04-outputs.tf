@@ -20,7 +20,12 @@ output "site_cloudfront_distribution_id" {
   value       = aws_cloudfront_distribution.site.id
 }
 
-output "github_oidc_role_arn" {
-  description = "Set as the AWS_ROLE_ARN repository variable in GitHub"
+output "github_deploy_role_arn" {
+  description = "Set as the AWS_ROLE_ARN_DEPLOY repository variable in GitHub"
   value       = aws_iam_role.github_deploy.arn
+}
+
+output "github_apply_role_arn" {
+  description = "Set as the AWS_ROLE_ARN_APPLY repository variable in GitHub"
+  value       = aws_iam_role.github_apply.arn
 }

@@ -1,4 +1,4 @@
-# Post 1: slide copy
+# Post 1: eks breach slide
 
 Source: [post01_eks_breach.pptx](post01_eks_breach.pptx). Text inside screenshots is excluded.
 

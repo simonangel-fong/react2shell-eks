@@ -7,6 +7,7 @@
   - [Steps](#steps)
   - [Website design](#website-design)
   - [IaC](#iac)
+  - [CI/CD pipelines](#cicd-pipelines)
 
 ---
 
@@ -36,6 +37,7 @@ website/
 | --- | ---------------------- |
 | 1   | Create project website |
 | 2   | Create infra website   |
+| 3   | CI/CD pipeline         |
 
 ---
 
@@ -53,7 +55,8 @@ website/
   - Navbar: icon + wordmark, anchors, GitHub button, menu on mobile
   - Hero: full-bleed photo, copy left
   - Security and Business Challenge: pull-quote, four layers, four perspectives
-  - Attack / Respond / Harden / Integrate: text + figure
+  - Attack / Respond / Harden / Integrate: text + figure + demo recording
+  - videos use native controls; no autoplay, audio left at the viewer's volume
   - Footer:
 
 ```sh
@@ -107,18 +110,81 @@ BUCKET=$(terraform -chdir=infra/project output -raw site_bucket)
 DIST=$(terraform -chdir=infra/project output -raw site_cloudfront_distribution_id)
 
 # build
-# VITE_VIDEO_BASE_URL is only needed if a stage uses videoUrl instead of figure
+# videos default to /videos on the same origin; VITE_VIDEO_BASE_URL overrides it
 npm --prefix website run build
 
 # sync to s3; keep videos/, which is not part of the build output
 aws s3 sync website/dist/ "s3://${BUCKET}/" --delete --exclude "videos/*"
 
 # upload videos (once; they rarely change)
-aws s3 sync docs/video/ "s3://${BUCKET}/videos/" --exclude "*" --include "*.mp4" --content-type "video/mp4" --cache-control "public,max-age=31536000,immutable"
+aws s3 sync docs/video/post "s3://${BUCKET}/videos/" --exclude "*" --include "*.mp4" --content-type "video/mp4" --cache-control "public,max-age=31536000,immutable"
 
 # invalidate the cdn cache
 aws cloudfront create-invalidation --distribution-id "${DIST}" --paths "/*"
 
 # clean up
 terraform -chdir=infra/project destroy -auto-approve
+```
+
+---
+
+## CI/CD pipelines
+
+| #   | Workflow                 | Trigger                         | Jobs                                     |
+| --- | ------------------------ | ------------------------------- | ---------------------------------------- |
+| 1   | `cd-website.yml`         | PR / push to master / manual    | website -> terraform -> apply -> publish |
+| 2   | `cd-website-destroy.yml` | manual only, typed confirmation | destroy                                  |
+
+- `cd-website.yml`
+
+| Job         | Runs on       | Steps                                                         |
+| ----------- | ------------- | ------------------------------------------------------------- |
+| `website`   | every trigger | npm ci, build, trivy vuln+secret gate, upload `dist` artifact |
+| `terraform` | every trigger | fmt, validate, trivy config SARIF + gate, secret gate         |
+| `apply`     | master only   | OIDC -> apply role, terraform apply                           |
+| `publish`   | after apply   | OIDC -> deploy role, s3 sync, cloudfront invalidation         |
+
+- Notes
+  - Two OIDC roles: `-github-apply` (terraform, master branch only) and
+    `-github-deploy` (s3 sync + invalidation). The publish job never holds
+    IAM write permissions.
+  - `publish` downloads the artifact `website` built, so the bundle that was
+    scanned is the one that ships.
+  - Cache split on upload: hashed assets `immutable`, `index.html` `no-cache`.
+  - PRs run the checks only; nothing touches AWS.
+
+- One-time setup
+
+```sh
+# repository variables
+gh variable set AWS_REGION --body "ca-central-1"
+gh variable set SITE_BUCKET --body "$(terraform -chdir=infra/project output -raw site_bucket)"
+gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "$(terraform -chdir=infra/project output -raw site_cloudfront_distribution_id)"
+gh variable set AWS_ROLE_ARN_APPLY --body "$(terraform -chdir=infra/project output -raw github_apply_role_arn)"
+gh variable set AWS_ROLE_ARN_DEPLOY --body "$(terraform -chdir=infra/project output -raw github_deploy_role_arn)"
+gh variable set TF_STATE_BUCKET --body "<tf_state_bucket>"
+gh variable set TF_STATE_KEY --body "<tf_state_key>"
+
+# secrets (prompts, so the value stays out of shell history)
+gh secret set CLOUDFLARE_API_TOKEN
+gh secret set CLOUDFLARE_ZONE_ID
+
+gh variable list && gh secret list
+```
+
+- Run
+
+```sh
+# deploy
+gh workflow run cd-website.yml --ref master
+
+# destroy (confirmation is required)
+gh workflow run cd-website-destroy.yml --ref master -f confirm=destroy
+
+# watch
+gh run list --workflow cd-website.yml --limit 5
+gh run watch "$(gh run list --workflow cd-website.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+
+# inspect a failed gate
+gh run view --log-failed
 ```

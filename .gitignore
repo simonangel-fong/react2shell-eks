@@ -57,3 +57,5 @@ terraform.rc
 backend.hcl
 # Demo recordings: exported locally, published to S3 — never committed
 *.mp4
+*.mp3
+*.srt

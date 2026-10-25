@@ -7,8 +7,6 @@
     - [React App](#react-app)
     - [Dockerize](#dockerize)
     - [Push image](#push-image)
-  - [Secure Application](#secure-application)
-    - [React App](#react-app-1)
 
 ---
 
@@ -118,9 +116,3 @@ python scripts/rce.py http://localhost:3000 id
 docker rm react2shell-insecure -f
 # react2shell-insecure
 ```
-
----
-
-## Secure Application
-
-### React App

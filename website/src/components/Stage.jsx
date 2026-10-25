@@ -52,13 +52,17 @@ export default function Stage({ stage }) {
           <Body text={body} term={term} tone={tone} />
         </p>
 
-        <div className="mt-9 max-w-4xl">
-          {figure ? (
+        {figure && (
+          <div className="mt-9 max-w-4xl">
             <Figure {...figure} />
-          ) : (
+          </div>
+        )}
+
+        {videoUrl && (
+          <div className="mt-9 max-w-4xl">
             <VideoPlayer src={videoUrl} label={`${label} demo recording`} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );

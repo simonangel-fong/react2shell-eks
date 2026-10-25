@@ -1,11 +1,10 @@
 export const REPO_URL = "https://github.com/simonangel-fong/react2shell-eks";
 
-// Every stage currently shows a figure, so nothing calls video() yet. The
-// plumbing stays for when the demo recordings go up: set a stage's videoUrl
-// instead of its figure and Stage renders the player.
-// Videos are served from S3 behind CloudFront, never bundled.
-const VIDEO_BASE = import.meta.env.VITE_VIDEO_BASE_URL?.replace(/\/$/, "") ?? "";
-const video = (file) => (VIDEO_BASE ? `${VIDEO_BASE}/${file}` : null);
+// Demo recordings are served from the site bucket behind CloudFront, never
+// bundled. They sit alongside the build output under /videos.
+const VIDEO_BASE =
+  import.meta.env.VITE_VIDEO_BASE_URL?.replace(/\/$/, "") ?? "/videos";
+const video = (file) => `${VIDEO_BASE}/${file}`;
 
 export const layers = ["code", "container", "cluster", "cloud"];
 
@@ -29,6 +28,7 @@ export const stages = [
     heading: "Application Breach with React2Shell",
     lead: "An attacker exploits React2Shell to execute commands inside the application container.",
     body: "The breach exposes container secrets, Kubernetes resources, an internal API, and a dummy RDS credential in AWS Secrets Manager through an overly permissive IRSA role.",
+    videoUrl: video("react2shell_eks_p01_attack.mp4"),
     figure: {
       src: "/diagram-attack-chain.png",
       webp: "/diagram-attack-chain.webp",
@@ -46,6 +46,7 @@ export const stages = [
     heading: "Investigation and Containment",
     lead: "The platform administrator traces credential access using CloudTrail events and pod logs.",
     body: "They pause Argo CD reconciliation, preserve evidence, isolate the pod, and document the incident.",
+    videoUrl: video("react2shell_eks_p02_response.mp4"),
     figure: {
       src: "/respond-netpol.png",
       width: 1375,
@@ -62,6 +63,7 @@ export const stages = [
     heading: "Defense in Depth",
     lead: "The security specialist removes broad cloud permissions, restricts RBAC, enforces NetworkPolicies, and hardens pod security settings.",
     body: "Replaying the attack after each change shows where access is blocked. Patching the application and using a non-root distroless image complete the hardening.",
+    videoUrl: video("react2shell_eks_p03_harden.mp4"),
     figure: {
       src: "/diagram-hardening.png",
       webp: "/diagram-hardening.webp",
@@ -79,6 +81,7 @@ export const stages = [
     heading: "DevSecOps",
     lead: "Shift left: the DevSecOps engineer adds Trivy checks in GitHub Actions for dependencies, images, Kubernetes manifests, and Terraform.",
     body: "Monitoring: cloud audit logs support investigation; a sample finding verifies the GuardDuty to EventBridge to SNS alert path.",
+    videoUrl: video("react2shell_eks_p04_devsecops.mp4"),
     figure: {
       src: "/integrate-pipeline.png",
       webp: "/integrate-pipeline.webp",

@@ -14,6 +14,7 @@ react2shell-eks/
   infra/
     eks-secure/       eks cluster with secure config
     eks-insecure/     eks cluster with insecure config
+    website/          website
   docs/               documentation
   README
 ```
@@ -38,7 +39,7 @@ react2shell-eks/
 | 14  | post 03 & video 02   | show incident response                                     | post03 & video02                          | Done     |
 | 15  | post 04 & video 03   | show hardening                                             | post04 & video03                          | Done     |
 | 16  | post 05 & video 04   | show pipeline                                              | post05 & video04                          | Done     |
-| 17  | project website      | Create project website                                     | Website online                            |          |
+| 17  | project website      | Create project website                                     | Website online                            | Done     |
 
 **Crown jewels (escalating blast radius)**
 
