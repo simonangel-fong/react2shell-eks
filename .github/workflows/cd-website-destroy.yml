@@ -1,0 +1,70 @@
+# Tears the website stack down. Manual only, and never on a schedule or a push.
+name: cd-website-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-website # never run beside a deploy
+  cancel-in-progress: false
+
+env:
+  TF_DIR: infra/project
+
+jobs:
+  destroy:
+    name: terraform destroy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC
+    steps:
+      # Guards against a mis-click on the Run workflow button.
+      - name: check confirmation
+        if: inputs.confirm != 'destroy'
+        run: |
+          echo "::error::confirm must be exactly 'destroy' (got '${{ inputs.confirm }}')"
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_APPLY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.15.7"
+          terraform_wrapper: false
+
+      - name: init
+        run: |
+          terraform -chdir=${{ env.TF_DIR }} init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+
+      # Terraform cannot delete a bucket that still holds objects.
+      - name: empty the site bucket
+        run: aws s3 rm "s3://${{ vars.SITE_BUCKET }}/" --recursive
+
+      - name: destroy
+        env:
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_tf_state_bucket: ${{ vars.TF_STATE_BUCKET }}
+          TF_VAR_tf_state_key: ${{ vars.TF_STATE_KEY }}
+        run: terraform -chdir=${{ env.TF_DIR }} destroy -auto-approve -input=false

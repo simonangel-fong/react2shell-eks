@@ -61,7 +61,7 @@ gh workflow run ci-image.yml --ref secure
 gh run view --log-failed
 ```
 
-![](github_action_screenshot)
+![github_actions_ci_image](./img/pipeline/github_actions_ci_image.png)
 
 ---
 

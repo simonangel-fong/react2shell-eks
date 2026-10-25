@@ -1,0 +1,141 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="react2shell-attack-chain" name="Attack chain">
+    <mxGraphModel dx="1628" dy="1045" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="rNVG6KplJzUQjmuejJWT-2" parent="0" style="locked=1;" value="Backgroud" />
+        <mxCell id="rNVG6KplJzUQjmuejJWT-3" parent="rNVG6KplJzUQjmuejJWT-2" style="rounded=0;whiteSpace=wrap;html=1;gradientColor=light-dark(#ffe6cc, #ededed);fillColor=light-dark(#dae8fc, #ededed);strokeColor=none;" value=" " vertex="1">
+          <mxGeometry height="900" width="1600" as="geometry" />
+        </mxCell>
+        <mxCell id="rNVG6KplJzUQjmuejJWT-4" parent="rNVG6KplJzUQjmuejJWT-2" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=36;fontStyle=1;fontColor=#172B4D;fontFamily=Comic Sans MS;" value="React2Shell on Amazon EKS - Hardening" vertex="1">
+          <mxGeometry height="55" width="1460" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1" parent="0" style="locked=0;" value="4c" />
+        <mxCell id="code-layer" parent="1" style="text;html=0;align=left;verticalAlign=middle;fontSize=23;fontStyle=1;fontColor=#C44332;fontFamily=Comic Sans MS;" value="CODE" vertex="1">
+          <mxGeometry height="40" width="230" x="40" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="container-layer" parent="1" style="text;html=0;align=left;verticalAlign=middle;fontSize=23;fontStyle=1;fontColor=#936600;fontFamily=Comic Sans MS;" value="CONTAINER" vertex="1">
+          <mxGeometry height="40" width="250" x="350" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster-frame" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=0;fillColor=#F0F6FF;strokeColor=#B8CFF0;strokeWidth=1;container=0;fontFamily=Comic Sans MS;" value="" vertex="1">
+          <mxGeometry height="275" width="850" x="680" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster-layer" parent="1" style="text;html=0;align=left;verticalAlign=middle;fontSize=23;fontStyle=1;fontColor=#20589D;fontFamily=Comic Sans MS;" value="CLUSTER" vertex="1">
+          <mxGeometry height="40" width="790" x="705" y="185" as="geometry" />
+        </mxCell>
+        <mxCell id="cloud-frame" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=0;fillColor=#F2F8F3;strokeColor=#BDD7C5;strokeWidth=1;container=0;fontFamily=Comic Sans MS;" value="" vertex="1">
+          <mxGeometry height="305" width="850" x="680" y="485" as="geometry" />
+        </mxCell>
+        <mxCell id="cloud-layer" parent="1" style="text;html=0;align=left;verticalAlign=middle;fontSize=23;fontStyle=1;fontColor=#277347;fontFamily=Comic Sans MS;" value="CLOUD" vertex="1">
+          <mxGeometry height="40" width="790" x="705" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="vulnerable-app" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFF1EE;strokeColor=#D96553;strokeWidth=2;fontSize=22;fontStyle=0;fontColor=#8D3024;spacing=12;fontFamily=Comic Sans MS;" value="Patch dependencies&#xa;Harden image" vertex="1">
+          <mxGeometry height="120" width="230" x="40" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="compromised-pod" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFF6DC;strokeColor=#C39B35;strokeWidth=2;fontSize=21;fontStyle=0;fontColor=#705218;spacing=12;fontFamily=Comic Sans MS;" value="Webapp pod&#xa;Security context&#xa;Non-root execution" vertex="1">
+          <mxGeometry height="120" width="250" x="350" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="container-secret" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFF6DC;strokeColor=#C39B35;strokeWidth=2;fontSize=20;fontColor=#705218;spacing=10;fontFamily=Comic Sans MS;fontStyle=1" value="Container secret&#xa;Environment variable" vertex="1">
+          <mxGeometry height="85" width="250" x="350" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-token" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#5D87BD;strokeWidth=2;fontSize=19;fontColor=#173F72;spacing=10;fontFamily=Comic Sans MS;" value="NO&#xa;Kubernetes&#xa;service account token" vertex="1">
+          <mxGeometry height="80" width="230" x="700" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-api" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#5D87BD;strokeWidth=2;fontSize=20;fontColor=#173F72;spacing=10;fontFamily=Comic Sans MS;" value="NO&#xa;Kubernetes&#xa;API server" vertex="1">
+          <mxGeometry height="80" width="175" x="980" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster-secret" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#DCEBFF;strokeColor=#5D87BD;strokeWidth=2;fontSize=20;fontStyle=1;fontColor=#173F72;spacing=10;fontFamily=Comic Sans MS;" value="Cluster secret&#xa;internal namespace" vertex="1">
+          <mxGeometry height="80" width="240" x="1260" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="internal-api" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#DCEBFF;strokeColor=#5D87BD;strokeWidth=2;fontSize=20;fontColor=#173F72;spacing=10;fontFamily=Comic Sans MS;fontStyle=1" value="Internal API data" vertex="1">
+          <mxGeometry height="60" width="240" x="1260" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="irsa-token" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#629B76;strokeWidth=2;fontSize=20;fontColor=#225A35;spacing=10;fontFamily=Comic Sans MS;fontStyle=0" value="NO&#xa;IRSA web&#xa;identity token" vertex="1">
+          <mxGeometry height="85" width="155" x="700" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="sts" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#629B76;strokeWidth=2;fontSize=20;fontColor=#225A35;spacing=10;fontFamily=Comic Sans MS;labelBackgroundColor=none;" value="NO&#xa;AWS STS&#xa;Assume role" vertex="1">
+          <mxGeometry height="85" width="155" x="905" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-credentials" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#629B76;strokeWidth=2;fontSize=19;fontColor=#225A35;spacing=10;fontFamily=Comic Sans MS;" value="Block&#xa;Temporary IAM&#xa;role credentials" vertex="1">
+          <mxGeometry height="85" width="180" x="1100" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="secrets-manager" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#629B76;strokeWidth=2;fontSize=20;fontColor=#225A35;spacing=10;fontFamily=Comic Sans MS;" value="Block&#xa;AWS Secrets&#xa;Manager" vertex="1">
+          <mxGeometry height="85" width="185" x="1320" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="rds-secret" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#DAEDDF;strokeColor=#629B76;strokeWidth=2;fontSize=20;fontStyle=1;fontColor=#225A35;spacing=10;fontFamily=Comic Sans MS;" value="RDS credential" vertex="1">
+          <mxGeometry height="65" width="240" x="1270" y="705" as="geometry" />
+        </mxCell>
+        <mxCell id="permission-note" parent="1" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontColor=#426A4E;fontFamily=Comic Sans MS;" value="Principle of Least Privilege denies secret access" vertex="1">
+          <mxGeometry height="50" width="530" x="710" y="705" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-rce" edge="1" parent="1" source="vulnerable-app" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=none;endFill=0;strokeColor=#C44332;strokeWidth=2;fontSize=18;fontColor=#8D3024;labelBackgroundColor=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;dashed=1;dashPattern=1 4;fontStyle=1" target="compromised-pod" value="No&#xa;RCE">
+          <mxGeometry relative="1" y="30" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-env" edge="1" parent="1" source="compromised-pod" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#936600;strokeWidth=2;fontSize=17;fontColor=#705218;labelBackgroundColor=none;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontFamily=Comic Sans MS;" target="container-secret" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-82" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-k8s-token" edge="1" parent="1" source="compromised-pod" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=none;endFill=0;strokeColor=#20589D;strokeWidth=2;exitX=1;exitY=0.2;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;dashed=1;dashPattern=1 4;" target="k8s-token" value="">
+          <mxGeometry relative="1" x="-0.0976" as="geometry">
+            <Array as="points">
+              <mxPoint x="635" y="344" />
+              <mxPoint x="635" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-k8s-api" edge="1" parent="1" source="k8s-token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#20589D;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;" target="k8s-api" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-rbac" edge="1" parent="1" source="k8s-api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=none;endFill=0;strokeColor=#20589D;strokeWidth=2;fontSize=18;fontColor=#173F72;labelBackgroundColor=#F0F6FF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;fontStyle=1;dashed=1;dashPattern=1 2;" target="cluster-secret" value="Block">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-internal-api" edge="1" parent="1" source="compromised-pod" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#20589D;strokeWidth=2;fontSize=17;fontColor=#173F72;labelBackgroundColor=#F0F6FF;exitX=1;exitY=0.581;fontFamily=Comic Sans MS;exitDx=0;exitDy=0;exitPerimeter=0;" target="MeC5j2qS4999yMz-MTxF-2" value="">
+          <mxGeometry relative="1" x="0.9249" as="geometry">
+            <mxPoint y="-20" as="offset" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-irsa" edge="1" parent="1" source="compromised-pod" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=none;endFill=0;strokeColor=#277347;strokeWidth=2;exitX=1;exitY=0.9;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;dashed=1;dashPattern=1 4;" target="irsa-token" value="">
+          <mxGeometry relative="1" x="0.0017" as="geometry">
+            <Array as="points">
+              <mxPoint x="635" y="429" />
+              <mxPoint x="635" y="607.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-sts" edge="1" parent="1" source="irsa-token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#277347;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;dashed=1;dashPattern=1 4;" target="sts" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-credentials" edge="1" parent="1" source="sts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#277347;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;dashed=1;dashPattern=1 4;" target="aws-credentials" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-secrets-manager" edge="1" parent="1" source="aws-credentials" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#277347;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontFamily=Comic Sans MS;dashed=1;dashPattern=1 4;" target="secrets-manager" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-rds-secret" edge="1" parent="1" source="secrets-manager" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=none;endFill=0;strokeColor=#277347;strokeWidth=2;fontSize=18;fontColor=#225A35;labelBackgroundColor=#F2F8F3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontFamily=Comic Sans MS;dashed=1;dashPattern=1 4;fontStyle=1" target="rds-secret" value="Block">
+          <mxGeometry relative="1" x="0.4054" y="-30" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1420" y="650" />
+              <mxPoint x="1420" y="677.5" />
+              <mxPoint x="1390" y="677.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MeC5j2qS4999yMz-MTxF-3" edge="1" parent="1" source="MeC5j2qS4999yMz-MTxF-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=gap;strokeColor=light-dark(#20589d, #ededed);strokeWidth=2;labelBackgroundColor=none;fontColor=light-dark(#20589d, #ededed);fontFamily=Comic Sans MS;fontSize=18;endArrow=none;endFill=0;dashed=1;dashPattern=1 4;" target="internal-api" value="&lt;b&gt;Block&lt;/b&gt;">
+          <mxGeometry relative="1" x="0.0303" y="20" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MeC5j2qS4999yMz-MTxF-2" parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#5D87BD;strokeWidth=2;fontSize=20;fontColor=#173F72;spacing=10;fontFamily=Comic Sans MS;" value="Network Policy" vertex="1">
+          <mxGeometry height="60" width="230" x="700" y="360" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
